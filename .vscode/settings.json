@@ -1,0 +1,6 @@
+{
+    "files.encoding": "shiftjis",
+    "files.exclude": {
+        "*.o": true
+    }
+}
