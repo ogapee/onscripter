@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * 
+ *
  *  simple_aviplay.cpp - sample program for AVIWrapper class
  *
  *  Copyright (c) 2001-2004 Ogapee. All rights reserved.
@@ -29,21 +29,21 @@
 
 #include "AVIWrapper.h"
 
-#define DEFAULT_AUDIOBUF  4096
+#define DEFAULT_AUDIOBUF 4096
 #define ONS_MIX_CHANNELS 50
 
-int main( int argc, char **argv )
+int main(int argc, char** argv)
 {
-    if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO ) < 0 ){
-        fprintf( stderr, "Couldn't initialize SDL: %s\n", SDL_GetError() );
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0) {
+        fprintf(stderr, "Couldn't initialize SDL: %s\n", SDL_GetError());
         exit(-1);
     }
 
     AVIWrapper avi;
-    if ( avi.init( argv[1], true ) ) exit(-1);
-    SDL_Surface *screen_surface = SDL_SetVideoMode( avi.getWidth(), avi.getHeight(), 32, SDL_SWSURFACE );
-    if ( avi.initAV( screen_surface, true ) ) exit(-1);
-    avi.play( true );
+    if (avi.init(argv[1], true)) exit(-1);
+    SDL_Surface* screen_surface = SDL_SetVideoMode(avi.getWidth(), avi.getHeight(), 32, SDL_SWSURFACE);
+    if (avi.initAV(screen_surface, true)) exit(-1);
+    avi.play(true);
 
     exit(0);
 }

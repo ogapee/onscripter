@@ -56,21 +56,21 @@
 
 #ifdef ANDROID
 #include <stdarg.h>
-static int osprintf(char *str, const char *format, ...)
+static int osprintf(char* str, const char* format, ...)
 {
     str[0] = 0;
     va_list list;
-    va_start( list, format );
-    while(*format){
-        if (format[0] == '%' && format[1] == 's'){
+    va_start(list, format);
+    while (*format) {
+        if (format[0] == '%' && format[1] == 's') {
             strcat(str, va_arg(list, char*));
             format += 2;
         }
-        else{
+        else {
             strncat(str, format++, 1);
         }
     }
-    va_end( list );
+    va_end(list);
     return strlen(str);
 }
 #define sprintf osprintf
@@ -88,36 +88,35 @@ void ONScripter::enterSystemCall()
     event_mode = IDLE_EVENT_MODE;
     shelter_display_mode = display_mode;
     display_mode = DISPLAY_MODE_TEXT;
-    
+
     shelter_refresh_shadow_text_mode = refresh_shadow_text_mode;
     refresh_shadow_text_mode &= ~REFRESH_CURSOR_MODE;
-    stopAnimation( clickstr_state );
+    stopAnimation(clickstr_state);
 }
 
-void ONScripter::leaveSystemCall( bool restore_flag )
+void ONScripter::leaveSystemCall(bool restore_flag)
 {
     current_font = &sentence_font;
     display_mode = shelter_display_mode;
 
-    if ( restore_flag ){
-        
+    if (restore_flag) {
         current_page = cached_page;
-        SDL_BlitSurface( backup_surface, NULL, text_info.image_surface, NULL );
+        SDL_BlitSurface(backup_surface, NULL, text_info.image_surface, NULL);
         root_button_link.next = shelter_button_link;
         root_select_link.next = shelter_select_link;
 
         event_mode = shelter_event_mode;
         refresh_shadow_text_mode = shelter_refresh_shadow_text_mode;
-        if ( event_mode & WAIT_BUTTON_MODE ){
+        if (event_mode & WAIT_BUTTON_MODE) {
             int x = shelter_mouse_state.x * screen_device_width / screen_width;
             int y = shelter_mouse_state.y * screen_device_width / screen_width;
             SDL_WarpMouse(x, y);
         }
     }
-    dirty_rect.fill( screen_width, screen_height );
-    flush( refreshMode() );
+    dirty_rect.fill(screen_width, screen_height);
+    flush(refreshMode());
 
-    //printf("leaveSystemCall %d %d\n",event_mode, clickstr_state);
+    // printf("leaveSystemCall %d %d\n",event_mode, clickstr_state);
 
     refreshMouseOverButton();
 
@@ -126,43 +125,43 @@ void ONScripter::leaveSystemCall( bool restore_flag )
 
 int ONScripter::executeSystemCall()
 {
-    SDL_BlitSurface( text_info.image_surface, NULL, backup_surface, NULL );
-    
+    SDL_BlitSurface(text_info.image_surface, NULL, backup_surface, NULL);
+
     enterSystemCall();
 
-    while(system_menu_mode != SYSTEM_NULL){
-        dirty_rect.fill( screen_width, screen_height );
-        switch(system_menu_mode){
-          case SYSTEM_SKIP:
+    while (system_menu_mode != SYSTEM_NULL) {
+        dirty_rect.fill(screen_width, screen_height);
+        switch (system_menu_mode) {
+        case SYSTEM_SKIP:
             executeSystemSkip();
             return 2; // continue parsing text
             break;
-          case SYSTEM_RESET:
+        case SYSTEM_RESET:
             if (executeSystemReset()) return 1; // stop parsing text
             break;
-          case SYSTEM_SAVE:
+        case SYSTEM_SAVE:
             executeSystemSave();
             break;
-          case SYSTEM_LOAD:
+        case SYSTEM_LOAD:
             if (executeSystemLoad()) return 1; // stop parsing text
             break;
-          case SYSTEM_LOOKBACK:
+        case SYSTEM_LOOKBACK:
             executeSystemLookback();
             break;
-          case SYSTEM_WINDOWERASE:
+        case SYSTEM_WINDOWERASE:
             executeWindowErase();
             break;
-          case SYSTEM_MENU:
+        case SYSTEM_MENU:
             executeSystemMenu();
             break;
-          case SYSTEM_AUTOMODE:
+        case SYSTEM_AUTOMODE:
             executeSystemAutomode();
             return 2; // continue parsing text
             break;
-          case SYSTEM_END:
+        case SYSTEM_END:
             executeSystemEnd();
             break;
-          default:
+        default:
             leaveSystemCall();
         }
     }
@@ -174,28 +173,28 @@ void ONScripter::executeSystemMenu()
 {
     current_font = &menu_font;
 
-    if ( menuselectvoice_file_name[MENUSELECTVOICE_OPEN] )
+    if (menuselectvoice_file_name[MENUSELECTVOICE_OPEN])
         playSound(menuselectvoice_file_name[MENUSELECTVOICE_OPEN],
                   SOUND_CHUNK, false, MIX_WAVE_CHANNEL);
 
-    text_info.fill( 0, 0, 0, 0 );
-    flush( refreshMode() );
+    text_info.fill(0, 0, 0, 0);
+    flush(refreshMode());
 
     menu_font.num_xy[0] = rmenu_link_width;
     menu_font.num_xy[1] = rmenu_link_num;
     menu_font.top_xy[0] = (screen_width * screen_ratio2 / screen_ratio1 - menu_font.num_xy[0] * menu_font.pitch_xy[0]) / 2;
-    menu_font.top_xy[1] = (screen_height * screen_ratio2 / screen_ratio1  - menu_font.num_xy[1] * menu_font.pitch_xy[1]) / 2;
+    menu_font.top_xy[1] = (screen_height * screen_ratio2 / screen_ratio1 - menu_font.num_xy[1] * menu_font.pitch_xy[1]) / 2;
     menu_font.setXY(0, 0);
 
-    RMenuLink *link = root_rmenu_link.next;
+    RMenuLink* link = root_rmenu_link.next;
     int counter = 1;
-    while( link ){
-        ButtonLink *button = getSelectableSentence( link->label, &menu_font, false );
-        root_button_link.insert( button );
+    while (link) {
+        ButtonLink* button = getSelectableSentence(link->label, &menu_font, false);
+        root_button_link.insert(button);
         button->no = counter++;
 
         link = link->next;
-        flush( refreshMode() );
+        flush(refreshMode());
     }
 
     flushEvent();
@@ -207,22 +206,22 @@ void ONScripter::executeSystemMenu()
 
     deleteButtonLink();
 
-    if ( current_button_state.button == -1 ){
-        if ( menuselectvoice_file_name[MENUSELECTVOICE_CANCEL] )
-            playSound(menuselectvoice_file_name[MENUSELECTVOICE_CANCEL], 
+    if (current_button_state.button == -1) {
+        if (menuselectvoice_file_name[MENUSELECTVOICE_CANCEL])
+            playSound(menuselectvoice_file_name[MENUSELECTVOICE_CANCEL],
                       SOUND_CHUNK, false, MIX_WAVE_CHANNEL);
         leaveSystemCall();
         return;
     }
-    
-    if ( menuselectvoice_file_name[MENUSELECTVOICE_CLICK] )
-        playSound(menuselectvoice_file_name[MENUSELECTVOICE_CLICK], 
+
+    if (menuselectvoice_file_name[MENUSELECTVOICE_CLICK])
+        playSound(menuselectvoice_file_name[MENUSELECTVOICE_CLICK],
                   SOUND_CHUNK, false, MIX_WAVE_CHANNEL);
 
     link = root_rmenu_link.next;
     counter = 1;
-    while ( link ){
-        if ( current_button_state.button == counter++ ){
+    while (link) {
+        if (current_button_state.button == counter++) {
             system_menu_mode = link->system_call_no;
             break;
         }
@@ -246,10 +245,10 @@ void ONScripter::executeSystemAutomode()
 
 bool ONScripter::executeSystemReset()
 {
-    if ( executeSystemYesNo( SYSTEM_RESET ) ){
+    if (executeSystemYesNo(SYSTEM_RESET)) {
         resetCommand();
-        leaveSystemCall( false );
-        
+        leaveSystemCall(false);
+
         return true;
     }
 
@@ -260,7 +259,7 @@ bool ONScripter::executeSystemReset()
 
 void ONScripter::executeSystemEnd()
 {
-    if ( executeSystemYesNo( SYSTEM_END ) )
+    if (executeSystemYesNo(SYSTEM_END))
         endCommand();
     else
         leaveSystemCall();
@@ -276,7 +275,7 @@ void ONScripter::executeWindowErase()
 
     event_mode = WAIT_TIMER_MODE | WAIT_BUTTON_MODE;
     waitEventSub(-1);
-        
+
     if (windowchip_sprite_no >= 0)
         sprite_info[windowchip_sprite_no].visible = true;
 
@@ -287,32 +286,32 @@ bool ONScripter::executeSystemLoad()
 {
     current_font = &menu_font;
 
-    text_info.fill( 0, 0, 0, 0 );
+    text_info.fill(0, 0, 0, 0);
 
     int n = script_h.enc.getNum((unsigned char*)save_item_name);
-    menu_font.num_xy[0] = (n+1)/2 + 2 + 13;
+    menu_font.num_xy[0] = (n + 1) / 2 + 2 + 13;
     menu_font.num_xy[1] = num_save_file + 2;
     menu_font.top_xy[0] = (screen_width * screen_ratio2 / screen_ratio1 - menu_font.num_xy[0] * menu_font.pitch_xy[0]) / 2;
-    menu_font.top_xy[1] = (screen_height * screen_ratio2 / screen_ratio1  - menu_font.num_xy[1] * menu_font.pitch_xy[1]) / 2;
+    menu_font.top_xy[1] = (screen_height * screen_ratio2 / screen_ratio1 - menu_font.num_xy[1] * menu_font.pitch_xy[1]) / 2;
     int n2 = script_h.enc.getNum((unsigned char*)load_menu_name);
-    menu_font.setXY((menu_font.num_xy[0]*2 - n2)/4, 0);
+    menu_font.setXY((menu_font.num_xy[0] * 2 - n2) / 4, 0);
     uchar3 color = {0xff, 0xff, 0xff};
-    drawString( load_menu_name, color, &menu_font, true, accumulation_surface, NULL, &text_info );
+    drawString(load_menu_name, color, &menu_font, true, accumulation_surface, NULL, &text_info);
     menu_font.newLine();
     menu_font.newLine();
-        
-    flush( refreshMode() );
-        
+
+    flush(refreshMode());
+
     bool nofile_flag;
-    char *buffer = new char[menu_font.num_xy[0]*4 + 1];
+    char* buffer = new char[menu_font.num_xy[0] * 4 + 1];
 
     SaveFileInfo save_file_info;
-    for ( unsigned int i=1 ; i<=num_save_file ; i++ ){
-        searchSaveFile( save_file_info, i );
-        menu_font.setXY((menu_font.num_xy[0]*2 - (n + 15*2)) / 4);
+    for (unsigned int i = 1; i <= num_save_file; i++) {
+        searchSaveFile(save_file_info, i);
+        menu_font.setXY((menu_font.num_xy[0] * 2 - (n + 15 * 2)) / 4);
 
-        char *format_str = NULL;
-        if ( save_file_info.valid ){
+        char* format_str = NULL;
+        if (save_file_info.valid) {
             setStr(&format_str, MESSAGE_SAVE_EXIST, -1, true);
             sprintf(buffer, format_str,
                     save_item_name,
@@ -323,7 +322,7 @@ bool ONScripter::executeSystemLoad()
                     save_file_info.sjis_minute);
             nofile_flag = false;
         }
-        else{
+        else {
             setStr(&format_str, MESSAGE_SAVE_EMPTY, -1, true);
             sprintf(buffer, format_str,
                     save_item_name,
@@ -331,10 +330,10 @@ bool ONScripter::executeSystemLoad()
             nofile_flag = true;
         }
         if (format_str) delete[] format_str;
-        ButtonLink *button = getSelectableSentence( buffer, &menu_font, false, nofile_flag );
-        root_button_link.insert( button );
+        ButtonLink* button = getSelectableSentence(buffer, &menu_font, false, nofile_flag);
+        root_button_link.insert(button);
         button->no = i;
-        flush( refreshMode() );
+        flush(refreshMode());
     }
     delete[] buffer;
 
@@ -342,28 +341,28 @@ bool ONScripter::executeSystemLoad()
 
     event_mode = WAIT_BUTTON_MODE;
     int file_no = 0;
-    while(1){
+    while (1) {
         waitEventSub(-1);
 
-        if ( current_button_state.button > 0 ){
+        if (current_button_state.button > 0) {
             file_no = current_button_state.button;
-            searchSaveFile( save_file_info, file_no );
-            if ( !save_file_info.valid ) continue;
+            searchSaveFile(save_file_info, file_no);
+            if (!save_file_info.valid) continue;
         }
 
         if (current_button_state.button != 0) break;
     }
 
-    if ( current_button_state.button > 0 ){
+    if (current_button_state.button > 0) {
         deleteButtonLink();
 
-        if (executeSystemYesNo( SYSTEM_LOAD, file_no )){
+        if (executeSystemYesNo(SYSTEM_LOAD, file_no)) {
             current_font = &sentence_font;
             system_menu_mode = 0; // for fadeout in mp3stopCommand()
-            if ( loadSaveFile( file_no ) )
+            if (loadSaveFile(file_no))
                 return false;
 
-            leaveSystemCall( false );
+            leaveSystemCall(false);
             saveon_flag = true;
             internal_saveon_flag = true;
             text_on_flag = false;
@@ -376,14 +375,14 @@ bool ONScripter::executeSystemLoad()
             flushEvent();
 
 #ifdef USE_LUA
-            if (lua_handler.isCallbackEnabled(LUAHandler::LUA_LOAD)){
+            if (lua_handler.isCallbackEnabled(LUAHandler::LUA_LOAD)) {
                 if (lua_handler.callFunction(true, "load", &file_no))
-                    errorAndExit( lua_handler.error_str );
+                    errorAndExit(lua_handler.error_str);
             }
 #endif
 
             if (loadgosub_label)
-                gosubReal( loadgosub_label, script_h.getCurrent() );
+                gosubReal(loadgosub_label, script_h.getCurrent());
 
             return true;
         }
@@ -393,7 +392,7 @@ bool ONScripter::executeSystemLoad()
 
     deleteButtonLink();
     leaveSystemCall();
-    
+
     return false;
 }
 
@@ -401,32 +400,32 @@ void ONScripter::executeSystemSave()
 {
     current_font = &menu_font;
 
-    text_info.fill( 0, 0, 0, 0 );
+    text_info.fill(0, 0, 0, 0);
 
     int n = script_h.enc.getNum((unsigned char*)save_item_name);
-    menu_font.num_xy[0] = (n+1)/2 + 2 + 13;
+    menu_font.num_xy[0] = (n + 1) / 2 + 2 + 13;
     menu_font.num_xy[1] = num_save_file + 2;
     menu_font.top_xy[0] = (screen_width * screen_ratio2 / screen_ratio1 - menu_font.num_xy[0] * menu_font.pitch_xy[0]) / 2;
-    menu_font.top_xy[1] = (screen_height * screen_ratio2 / screen_ratio1  - menu_font.num_xy[1] * menu_font.pitch_xy[1]) / 2;
+    menu_font.top_xy[1] = (screen_height * screen_ratio2 / screen_ratio1 - menu_font.num_xy[1] * menu_font.pitch_xy[1]) / 2;
     int n2 = script_h.enc.getNum((unsigned char*)save_menu_name);
-    menu_font.setXY((menu_font.num_xy[0]*2 - n2)/4, 0);
+    menu_font.setXY((menu_font.num_xy[0] * 2 - n2) / 4, 0);
     uchar3 color = {0xff, 0xff, 0xff};
-    drawString( save_menu_name, color, &menu_font, true, accumulation_surface, NULL, &text_info );
+    drawString(save_menu_name, color, &menu_font, true, accumulation_surface, NULL, &text_info);
     menu_font.newLine();
     menu_font.newLine();
-        
-    flush( refreshMode() );
-        
-    bool nofile_flag;
-    char *buffer = new char[menu_font.num_xy[0]*4 + 1];
-    
-    for ( unsigned int i=1 ; i<=num_save_file ; i++ ){
-        SaveFileInfo save_file_info;
-        searchSaveFile( save_file_info, i );
-        menu_font.setXY((menu_font.num_xy[0]*2 - (n + 15*2)) / 4);
 
-        char *format_str = NULL;
-        if ( save_file_info.valid ){
+    flush(refreshMode());
+
+    bool nofile_flag;
+    char* buffer = new char[menu_font.num_xy[0] * 4 + 1];
+
+    for (unsigned int i = 1; i <= num_save_file; i++) {
+        SaveFileInfo save_file_info;
+        searchSaveFile(save_file_info, i);
+        menu_font.setXY((menu_font.num_xy[0] * 2 - (n + 15 * 2)) / 4);
+
+        char* format_str = NULL;
+        if (save_file_info.valid) {
             setStr(&format_str, MESSAGE_SAVE_EXIST, -1, true);
             sprintf(buffer, format_str,
                     save_item_name,
@@ -437,7 +436,7 @@ void ONScripter::executeSystemSave()
                     save_file_info.sjis_minute);
             nofile_flag = false;
         }
-        else{
+        else {
             setStr(&format_str, MESSAGE_SAVE_EMPTY, -1, true);
             sprintf(buffer, format_str,
                     save_item_name,
@@ -445,10 +444,10 @@ void ONScripter::executeSystemSave()
             nofile_flag = true;
         }
         if (format_str) delete[] format_str;
-        ButtonLink *button = getSelectableSentence( buffer, &menu_font, false, nofile_flag );
-        root_button_link.insert( button );
+        ButtonLink* button = getSelectableSentence(buffer, &menu_font, false, nofile_flag);
+        root_button_link.insert(button);
         button->no = i;
-        flush( refreshMode() );
+        flush(refreshMode());
     }
     delete[] buffer;
 
@@ -460,11 +459,11 @@ void ONScripter::executeSystemSave()
 
     deleteButtonLink();
 
-    if ( current_button_state.button > 0 ){
+    if (current_button_state.button > 0) {
         int file_no = current_button_state.button;
-        if (executeSystemYesNo( SYSTEM_SAVE, file_no )){
+        if (executeSystemYesNo(SYSTEM_SAVE, file_no)) {
             if (saveon_flag && internal_saveon_flag) storeSaveFile();
-            writeSaveFile( file_no );
+            writeSaveFile(file_no);
             leaveSystemCall();
         }
         return;
@@ -473,87 +472,87 @@ void ONScripter::executeSystemSave()
     leaveSystemCall();
 }
 
-bool ONScripter::executeSystemYesNo( int caller, int file_no )
+bool ONScripter::executeSystemYesNo(int caller, int file_no)
 {
     current_font = &menu_font;
 
-    text_info.fill( 0, 0, 0, 0 );
-    dirty_rect.fill( screen_width, screen_height );
+    text_info.fill(0, 0, 0, 0);
+    dirty_rect.fill(screen_width, screen_height);
 
     char name[128] = {'\0'};
-    char *format_str = NULL;
-    if ( caller == SYSTEM_SAVE ){
+    char* format_str = NULL;
+    if (caller == SYSTEM_SAVE) {
         SaveFileInfo save_file_info;
-        searchSaveFile( save_file_info, file_no );
+        searchSaveFile(save_file_info, file_no);
         setStr(&format_str, MESSAGE_SAVE_CONFIRM, -1, true);
         sprintf(name, format_str,
                 save_item_name,
                 save_file_info.sjis_no);
     }
-    else if ( caller == SYSTEM_LOAD ){
+    else if (caller == SYSTEM_LOAD) {
         SaveFileInfo save_file_info;
-        searchSaveFile( save_file_info, file_no );
+        searchSaveFile(save_file_info, file_no);
         setStr(&format_str, MESSAGE_LOAD_CONFIRM, -1, true);
         sprintf(name, format_str,
                 save_item_name,
                 save_file_info.sjis_no);
     }
-    else if ( caller ==  SYSTEM_RESET ){
+    else if (caller == SYSTEM_RESET) {
         setStr(&format_str, MESSAGE_RESET_CONFIRM, -1, true);
         strcpy(name, format_str);
     }
-    else if ( caller ==  SYSTEM_END ){
+    else if (caller == SYSTEM_END) {
         setStr(&format_str, MESSAGE_END_CONFIRM, -1, true);
         strcpy(name, format_str);
     }
-        
+
     int n = script_h.enc.getNum((unsigned char*)name);
-    menu_font.num_xy[0] = (n+1)/2;
+    menu_font.num_xy[0] = (n + 1) / 2;
     menu_font.num_xy[1] = 3;
     menu_font.top_xy[0] = (screen_width * screen_ratio2 / screen_ratio1 - menu_font.num_xy[0] * menu_font.pitch_xy[0]) / 2;
-    menu_font.top_xy[1] = (screen_height * screen_ratio2 / screen_ratio1  - menu_font.num_xy[1] * menu_font.pitch_xy[1]) / 2;
+    menu_font.top_xy[1] = (screen_height * screen_ratio2 / screen_ratio1 - menu_font.num_xy[1] * menu_font.pitch_xy[1]) / 2;
     menu_font.setXY(0, 0);
     uchar3 color = {0xff, 0xff, 0xff};
-    drawString( name, color, &menu_font, true, accumulation_surface, NULL, &text_info );
+    drawString(name, color, &menu_font, true, accumulation_surface, NULL, &text_info);
 
-    flush( refreshMode() );
-        
-    int offset1 = n/5;
-    int offset2 = n/2 - offset1;
+    flush(refreshMode());
+
+    int offset1 = n / 5;
+    int offset2 = n / 2 - offset1;
     setStr(&format_str, MESSAGE_YES, -1, true);
     strcpy(name, format_str);
-    menu_font.setXY(offset1-2, 2);
-    ButtonLink *button = getSelectableSentence( name, &menu_font, false );
-    root_button_link.insert( button );
+    menu_font.setXY(offset1 - 2, 2);
+    ButtonLink* button = getSelectableSentence(name, &menu_font, false);
+    root_button_link.insert(button);
     button->no = 1;
 
     setStr(&format_str, MESSAGE_NO, -1, true);
     strcpy(name, format_str);
     menu_font.setXY(offset2, 2);
-    button = getSelectableSentence( name, &menu_font, false );
-    root_button_link.insert( button );
+    button = getSelectableSentence(name, &menu_font, false);
+    root_button_link.insert(button);
     button->no = 2;
-    
+
     if (format_str) delete[] format_str;
-        
-    flush( refreshMode() );
-        
+
+    flush(refreshMode());
+
     refreshMouseOverButton();
 
     event_mode = WAIT_BUTTON_MODE;
     do waitEventSub(-1);
     while (current_button_state.button == 0);
-        
+
     deleteButtonLink();
 
-    if ( current_button_state.button == 1 ){ // yes is selected
-        if ( menuselectvoice_file_name[MENUSELECTVOICE_YES] )
+    if (current_button_state.button == 1) { // yes is selected
+        if (menuselectvoice_file_name[MENUSELECTVOICE_YES])
             playSound(menuselectvoice_file_name[MENUSELECTVOICE_YES],
                       SOUND_CHUNK, false, MIX_WAVE_CHANNEL);
         return true;
     }
-    else{
-        if ( menuselectvoice_file_name[MENUSELECTVOICE_NO] )
+    else {
+        if (menuselectvoice_file_name[MENUSELECTVOICE_NO])
             playSound(menuselectvoice_file_name[MENUSELECTVOICE_NO],
                       SOUND_CHUNK, false, MIX_WAVE_CHANNEL);
         return false;
@@ -563,25 +562,25 @@ bool ONScripter::executeSystemYesNo( int caller, int file_no )
 void ONScripter::setupLookbackButton()
 {
     deleteButtonLink();
-    
+
     /* ---------------------------------------- */
     /* Previous button check */
-    if ( (current_page->previous->text_count > 0 ) &&
-         current_page != start_page ){
-        ButtonLink *button = new ButtonLink();
-        root_button_link.insert( button );
-    
+    if ((current_page->previous->text_count > 0) &&
+        current_page != start_page) {
+        ButtonLink* button = new ButtonLink();
+        root_button_link.insert(button);
+
         button->no = 1;
 
-        if ( lookback_sp[0] >= 0 ){
+        if (lookback_sp[0] >= 0) {
             button->button_type = ButtonLink::SPRITE_BUTTON;
             button->sprite_no = lookback_sp[0];
-            AnimationInfo &si = sprite_info[ button->sprite_no ];
+            AnimationInfo& si = sprite_info[button->sprite_no];
             si.visible = true;
             button->select_rect = si.pos;
-            button->image_rect  = si.pos;
+            button->image_rect = si.pos;
         }
-        else{
+        else {
             button->button_type = ButtonLink::LOOKBACK_BUTTON;
             button->select_rect = sentence_font_info.pos;
             button->select_rect.h /= 3;
@@ -596,30 +595,30 @@ void ONScripter::setupLookbackButton()
             button->anim[0]->pos.y = button->anim[1]->pos.y = button->image_rect.y;
         }
     }
-    else if (lookback_sp[0] >= 0){
-        sprite_info[ lookback_sp[0] ].visible = false;
+    else if (lookback_sp[0] >= 0) {
+        sprite_info[lookback_sp[0]].visible = false;
     }
 
     /* ---------------------------------------- */
     /* Next button check */
-    if ( current_page->next != cached_page ){
-        ButtonLink *button = new ButtonLink();
-        root_button_link.insert( button );
-    
+    if (current_page->next != cached_page) {
+        ButtonLink* button = new ButtonLink();
+        root_button_link.insert(button);
+
         button->no = 2;
 
-        if ( lookback_sp[1] >= 0 ){
+        if (lookback_sp[1] >= 0) {
             button->button_type = ButtonLink::SPRITE_BUTTON;
             button->sprite_no = lookback_sp[1];
-            AnimationInfo &si = sprite_info[ button->sprite_no ];
+            AnimationInfo& si = sprite_info[button->sprite_no];
             si.visible = true;
             button->select_rect = si.pos;
-            button->image_rect  = si.pos;
+            button->image_rect = si.pos;
         }
-        else{
+        else {
             button->button_type = ButtonLink::LOOKBACK_BUTTON;
             button->select_rect = sentence_font_info.pos;
-            button->select_rect.y += sentence_font_info.pos.h*2/3;
+            button->select_rect.y += sentence_font_info.pos.h * 2 / 3;
             button->select_rect.h /= 3;
             button->show_flag = 2;
             button->anim[0] = &lookback_info[2];
@@ -632,8 +631,8 @@ void ONScripter::setupLookbackButton()
             button->anim[0]->pos.y = button->anim[1]->pos.y = button->image_rect.y;
         }
     }
-    else if (lookback_sp[1] >= 0){
-        sprite_info[ lookback_sp[1] ].visible = false;
+    else if (lookback_sp[1] >= 0) {
+        sprite_info[lookback_sp[1]].visible = false;
     }
 }
 
@@ -641,59 +640,58 @@ void ONScripter::executeSystemLookback()
 {
     int i;
     uchar3 color;
-    
+
     current_font = &sentence_font;
 
     current_page = current_page->previous;
-    if ( current_page->text_count == 0 ){
-        if ( lookback_sp[0] >= 0 )
-            sprite_info[ lookback_sp[0] ].visible = false;
-        if ( lookback_sp[1] >= 0 )
-            sprite_info[ lookback_sp[1] ].visible = false;
+    if (current_page->text_count == 0) {
+        if (lookback_sp[0] >= 0)
+            sprite_info[lookback_sp[0]].visible = false;
+        if (lookback_sp[1] >= 0)
+            sprite_info[lookback_sp[1]].visible = false;
         leaveSystemCall();
         return;
     }
 
-    while(1){
+    while (1) {
         setupLookbackButton();
         refreshMouseOverButton();
 
-        dirty_rect.fill( screen_width, screen_height );
-        flush( refreshMode() & ~REFRESH_TEXT_MODE);
+        dirty_rect.fill(screen_width, screen_height);
+        flush(refreshMode() & ~REFRESH_TEXT_MODE);
 
-        for ( i=0 ; i<3 ; i++ ){
+        for (i = 0; i < 3; i++) {
             color[i] = sentence_font.color[i];
             sentence_font.color[i] = lookback_color[i];
         }
         restoreTextBuffer(accumulation_surface);
-        for ( i=0 ; i<3 ; i++ ) sentence_font.color[i] = color[i];
-        flush( REFRESH_NONE_MODE );
+        for (i = 0; i < 3; i++) sentence_font.color[i] = color[i];
+        flush(REFRESH_NONE_MODE);
 
         event_mode = WAIT_BUTTON_MODE;
         waitEventSub(-1);
-    
-        if ( current_button_state.button == 0 ||
-             ( current_page == start_page &&
-               current_button_state.button == -2 ) ){
+
+        if (current_button_state.button == 0 ||
+            (current_page == start_page &&
+             current_button_state.button == -2)) {
             continue;
         }
-        if ( current_button_state.button == -1 ||
-             ( current_button_state.button == -3 &&
-               current_page->next == cached_page ) ||
-             current_button_state.button <= -4 )
-        {
+        if (current_button_state.button == -1 ||
+            (current_button_state.button == -3 &&
+             current_page->next == cached_page) ||
+            current_button_state.button <= -4) {
             event_mode = IDLE_EVENT_MODE;
             deleteButtonLink();
-            if ( lookback_sp[0] >= 0 )
-                sprite_info[ lookback_sp[0] ].visible = false;
-            if ( lookback_sp[1] >= 0 )
-                sprite_info[ lookback_sp[1] ].visible = false;
+            if (lookback_sp[0] >= 0)
+                sprite_info[lookback_sp[0]].visible = false;
+            if (lookback_sp[1] >= 0)
+                sprite_info[lookback_sp[1]].visible = false;
             leaveSystemCall();
             return;
         }
-        
-        if ( current_button_state.button == 1 ||
-             current_button_state.button == -2 ){
+
+        if (current_button_state.button == 1 ||
+            current_button_state.button == -2) {
             current_page = current_page->previous;
         }
         else
@@ -701,135 +699,149 @@ void ONScripter::executeSystemLookback()
     }
 }
 
-void ONScripter::buildDialog(bool yesno_flag, const char *mes1, const char *mes2)
+void ONScripter::buildDialog(bool yesno_flag, const char* mes1, const char* mes2)
 {
-    SDL_PixelFormat *fmt = image_surface->format;
-    SDL_Surface *s = SDL_CreateRGBSurface( SDL_SWSURFACE, DIALOG_W, DIALOG_H,
-                                           fmt->BitsPerPixel, fmt->Rmask, fmt->Gmask, fmt->Bmask, fmt->Amask );
+    SDL_PixelFormat* fmt = image_surface->format;
+    SDL_Surface* s = SDL_CreateRGBSurface(SDL_SWSURFACE, DIALOG_W, DIALOG_H,
+                                          fmt->BitsPerPixel, fmt->Rmask, fmt->Gmask, fmt->Bmask, fmt->Amask);
 
     SDL_Rect rect;
     unsigned char col = 255;
     SDL_FillRect(s, NULL, SDL_MapRGBA(s->format, col, col, col, 0xff));
 
-    rect.x = 2; rect.y = DIALOG_HEADER;
-    rect.w = DIALOG_W-4; rect.h = DIALOG_H-rect.y-2;
+    rect.x = 2;
+    rect.y = DIALOG_HEADER;
+    rect.w = DIALOG_W - 4;
+    rect.h = DIALOG_H - rect.y - 2;
     col = 105;
     SDL_FillRect(s, &rect, SDL_MapRGBA(s->format, col, col, col, 0xff));
-    
-    rect.x++; rect.y++; rect.w-=2; rect.h-=2;
+
+    rect.x++;
+    rect.y++;
+    rect.w -= 2;
+    rect.h -= 2;
     col = 255;
     SDL_FillRect(s, &rect, SDL_MapRGBA(s->format, col, col, col, 0xff));
 
     rect.h = DIALOG_FOOTER;
-    rect.y = DIALOG_H-3-rect.h;
+    rect.y = DIALOG_H - 3 - rect.h;
     col = 240;
     SDL_FillRect(s, &rect, SDL_MapRGBA(s->format, col, col, col, 0xff));
 
-    SDL_Surface *s2 = s;
-    if (screen_ratio2 != screen_ratio1){
-        s2 = SDL_CreateRGBSurface( SDL_SWSURFACE, DIALOG_W*screen_ratio1/screen_ratio2, DIALOG_H*screen_ratio1/screen_ratio2,
-                                   fmt->BitsPerPixel, fmt->Rmask, fmt->Gmask, fmt->Bmask, fmt->Amask );
+    SDL_Surface* s2 = s;
+    if (screen_ratio2 != screen_ratio1) {
+        s2 = SDL_CreateRGBSurface(SDL_SWSURFACE, DIALOG_W * screen_ratio1 / screen_ratio2, DIALOG_H * screen_ratio1 / screen_ratio2,
+                                  fmt->BitsPerPixel, fmt->Rmask, fmt->Gmask, fmt->Bmask, fmt->Amask);
         resizeSurface(s, s2);
         SDL_FreeSurface(s);
     }
 
-    uchar3 col3={0, 0, 0};
+    uchar3 col3 = {0, 0, 0};
     dialog_font.top_xy[0] = 7;
-    dialog_font.top_xy[1] = DIALOG_HEADER+5;
-    dialog_font.num_xy[0] = (DIALOG_W-7*2)/dialog_font.pitch_xy[0];
+    dialog_font.top_xy[1] = DIALOG_HEADER + 5;
+    dialog_font.num_xy[0] = (DIALOG_W - 7 * 2) / dialog_font.pitch_xy[0];
     dialog_font.num_xy[1] = 3;
     dialog_font.clear();
-    drawString( mes1, col3, &dialog_font, false, s2, NULL, NULL );
+    drawString(mes1, col3, &dialog_font, false, s2, NULL, NULL);
 
     dialog_font.top_xy[0] = 5;
-    dialog_font.top_xy[1] = (DIALOG_HEADER-dialog_font.font_size_xy[1])/2;
+    dialog_font.top_xy[1] = (DIALOG_HEADER - dialog_font.font_size_xy[1]) / 2;
     openFont(&dialog_font);
     dialog_font.setLineArea(mes2);
     dialog_font.clear();
-    drawString( mes2, col3, &dialog_font, false, s2, NULL, NULL );
+    drawString(mes2, col3, &dialog_font, false, s2, NULL, NULL);
 
     dialog_info.deleteSurface();
     dialog_info.num_of_cells = 1;
     dialog_info.setImage(s2, texture_format);
-    
-    dialog_info.pos.x = (screen_width  - dialog_info.pos.w)/2;
-    dialog_info.pos.y = (screen_height - dialog_info.pos.h)/2;
+
+    dialog_info.pos.x = (screen_width - dialog_info.pos.w) / 2;
+    dialog_info.pos.y = (screen_height - dialog_info.pos.h) / 2;
 
     // buttons
     char* mes[2] = {NULL};
-    if (yesno_flag){
+    if (yesno_flag) {
         setStr(&mes[0], MESSAGE_YES, -1, true);
         setStr(&mes[1], MESSAGE_NO, -1, true);
     }
-    else{
+    else {
         setStr(&mes[0], MESSAGE_OK, -1, true);
         setStr(&mes[1], MESSAGE_CANCEL, -1, true);
     }
 
-    for (int i=0 ; i<2 ; i++){
-        SDL_Surface *bs = SDL_CreateRGBSurface( SDL_SWSURFACE, DIALOG_BUTTON_W*2, DIALOG_BUTTON_H,
-                                                fmt->BitsPerPixel, fmt->Rmask, fmt->Gmask, fmt->Bmask, fmt->Amask );
+    for (int i = 0; i < 2; i++) {
+        SDL_Surface* bs = SDL_CreateRGBSurface(SDL_SWSURFACE, DIALOG_BUTTON_W * 2, DIALOG_BUTTON_H,
+                                               fmt->BitsPerPixel, fmt->Rmask, fmt->Gmask, fmt->Bmask, fmt->Amask);
 
-        for (int j=0 ; j<2 ; j++){
-            rect.x = DIALOG_BUTTON_W*j;
+        for (int j = 0; j < 2; j++) {
+            rect.x = DIALOG_BUTTON_W * j;
             rect.y = 0;
-            rect.w = DIALOG_BUTTON_W; rect.h = DIALOG_BUTTON_H;
+            rect.w = DIALOG_BUTTON_W;
+            rect.h = DIALOG_BUTTON_H;
 
             col = 105;
             SDL_FillRect(bs, &rect, SDL_MapRGBA(bs->format, col, col, col, 0xff));
 
-            rect.w--; rect.h--;
+            rect.w--;
+            rect.h--;
             col = 255;
             SDL_FillRect(bs, &rect, SDL_MapRGBA(bs->format, col, col, col, 0xff));
 
-            rect.x++; rect.y++; rect.w--; rect.h--;
+            rect.x++;
+            rect.y++;
+            rect.w--;
+            rect.h--;
             col = 227;
             SDL_FillRect(bs, &rect, SDL_MapRGBA(bs->format, col, col, col, 0xff));
 
-            rect.x++; rect.y++; rect.w-=2; rect.h-=2;
+            rect.x++;
+            rect.y++;
+            rect.w -= 2;
+            rect.h -= 2;
             col = 240;
-            if (j==1) col = 214;
+            if (j == 1) col = 214;
             SDL_FillRect(bs, &rect, SDL_MapRGBA(bs->format, col, col, col, 0xff));
         }
 
-        SDL_Surface *bs2 = bs;
-        if (screen_ratio2 != screen_ratio1){
-            bs2 = SDL_CreateRGBSurface( SDL_SWSURFACE, DIALOG_BUTTON_W*2*screen_ratio1/screen_ratio2, DIALOG_BUTTON_H*screen_ratio1/screen_ratio2,
-                                        fmt->BitsPerPixel, fmt->Rmask, fmt->Gmask, fmt->Bmask, fmt->Amask );
+        SDL_Surface* bs2 = bs;
+        if (screen_ratio2 != screen_ratio1) {
+            bs2 = SDL_CreateRGBSurface(SDL_SWSURFACE, DIALOG_BUTTON_W * 2 * screen_ratio1 / screen_ratio2, DIALOG_BUTTON_H * screen_ratio1 / screen_ratio2,
+                                       fmt->BitsPerPixel, fmt->Rmask, fmt->Gmask, fmt->Bmask, fmt->Amask);
             resizeSurface(bs, bs2);
             SDL_FreeSurface(bs);
         }
 
-        for (int j=0 ; j<2 ; j++){
-            rect.x = DIALOG_BUTTON_W*j+2;
+        for (int j = 0; j < 2; j++) {
+            rect.x = DIALOG_BUTTON_W * j + 2;
             rect.y = 2;
-            rect.w = DIALOG_BUTTON_W-4; rect.h = DIALOG_BUTTON_H-4;
+            rect.w = DIALOG_BUTTON_W - 4;
+            rect.h = DIALOG_BUTTON_H - 4;
 
-            dialog_font.top_xy[0] = rect.x+(rect.w-dialog_font.pitch_xy[0]*strlen(mes[i])/2)/2;
-            dialog_font.top_xy[1] = rect.y+(rect.h-dialog_font.font_size_xy[1])/2;
+            dialog_font.top_xy[0] = rect.x + (rect.w - dialog_font.pitch_xy[0] * strlen(mes[i]) / 2) / 2;
+            dialog_font.top_xy[1] = rect.y + (rect.h - dialog_font.font_size_xy[1]) / 2;
             openFont(&dialog_font);
             dialog_font.setLineArea(mes[i]);
             dialog_font.clear();
-            drawString( mes[i], col3, &dialog_font, false, bs2, NULL, NULL );
+            drawString(mes[i], col3, &dialog_font, false, bs2, NULL, NULL);
         }
 
-        ButtonLink *btn = new ButtonLink();
-        btn->no = i+1;
+        ButtonLink* btn = new ButtonLink();
+        btn->no = i + 1;
         btn->button_type = ButtonLink::TMP_SPRITE_BUTTON;
         btn->anim[0] = new AnimationInfo();
         btn->anim[0]->num_of_cells = 2;
         btn->anim[0]->setImage(bs2, texture_format);
         btn->show_flag = 1;
 
-        btn->anim[0]->pos.x = dialog_info.pos.x + (DIALOG_W-3-(DIALOG_BUTTON_W+8)*(2-i))*screen_ratio1/screen_ratio2;
-        btn->anim[0]->pos.y = dialog_info.pos.y + (DIALOG_H-3-(DIALOG_FOOTER+DIALOG_BUTTON_H)/2)*screen_ratio1/screen_ratio2;
+        btn->anim[0]->pos.x = dialog_info.pos.x + (DIALOG_W - 3 - (DIALOG_BUTTON_W + 8) * (2 - i)) * screen_ratio1 / screen_ratio2;
+        btn->anim[0]->pos.y = dialog_info.pos.y + (DIALOG_H - 3 - (DIALOG_FOOTER + DIALOG_BUTTON_H) / 2) * screen_ratio1 / screen_ratio2;
 
         btn->anim[0]->visible = true;
         btn->select_rect = btn->image_rect = btn->anim[0]->pos;
 
-        root_button_link.insert( btn );
+        root_button_link.insert(btn);
     }
-    
+
     delete[] mes[0];
     delete[] mes[1];
 }

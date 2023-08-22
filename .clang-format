@@ -1,0 +1,14 @@
+BasedOnStyle: Google
+Language: Cpp
+
+AccessModifierOffset: -4
+AlignTrailingComments: false
+BreakBeforeBraces: Stroustrup
+ColumnLimit: 0
+DerivePointerAlignment: false
+IndentCaseLabels: false
+IndentWidth: 4
+PointerAlignment: Left
+SpacesBeforeTrailingComments: 1
+SortIncludes: false
+UseTab: Never

@@ -839,8 +839,8 @@ int ScriptHandler::getStringFromInteger( char *buffer, int no, int num_column, b
     else{
         if (code == Encoding::CODE_CP932){
             for (i=0; i<num_space; i++){
-                buffer[c++] = ((char*)"@")[0];
-                buffer[c++] = ((char*)"@")[1];
+                buffer[c++] = ((char*)"@")[0];
+                buffer[c++] = ((char*)"@")[1];
             }
         }
         if (code == Encoding::CODE_UTF8){
@@ -853,8 +853,8 @@ int ScriptHandler::getStringFromInteger( char *buffer, int no, int num_column, b
     }
     if (num_minus == 1){
         if (code == Encoding::CODE_CP932){
-            buffer[c++] = "|"[0];
-            buffer[c++] = "|"[1];
+            buffer[c++] = "|"[0];
+            buffer[c++] = "|"[1];
         }
         if (code == Encoding::CODE_UTF8){
             buffer[c++] = 0xef;

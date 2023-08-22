@@ -28,37 +28,36 @@
 #define MAX_EXTRA_ARCHIVE 9
 #define MAX_NS2_ARCHIVE 100
 
-class NsaReader : public SarReader
-{
+class NsaReader : public SarReader {
 public:
-    NsaReader( unsigned int nsa_offset=0, char *path=NULL, int archive_type=ARCHIVE_TYPE_NSA, const unsigned char *key_table=NULL );
+    NsaReader(unsigned int nsa_offset = 0, char* path = NULL, int archive_type = ARCHIVE_TYPE_NSA, const unsigned char* key_table = NULL);
     ~NsaReader();
 
-    int open( const char *nsa_path=NULL );
-    const char *getArchiveName() const;
+    int open(const char* nsa_path = NULL);
+    const char* getArchiveName() const;
     int getNumFiles();
-    
-    size_t getFileLength( const char *file_name );
-    size_t getFile( const char *file_name, unsigned char *buf, int *location=NULL );
-    FileInfo getFileByIndex( unsigned int index );
 
-    int openForConvert( char *nsa_name, int archive_type=ARCHIVE_TYPE_NSA, unsigned int nsa_offset=0 );
-    int writeHeader( FILE *fp, int archive_type=ARCHIVE_TYPE_NSA, int nsa_offset=0 );
-    size_t putFile( FILE *fp, int no, size_t offset, size_t length, size_t original_length, int compression_type, bool modified_flag, unsigned char *buffer );
-    
+    size_t getFileLength(const char* file_name);
+    size_t getFile(const char* file_name, unsigned char* buf, int* location = NULL);
+    FileInfo getFileByIndex(unsigned int index);
+
+    int openForConvert(char* nsa_name, int archive_type = ARCHIVE_TYPE_NSA, unsigned int nsa_offset = 0);
+    int writeHeader(FILE* fp, int archive_type = ARCHIVE_TYPE_NSA, int nsa_offset = 0);
+    size_t putFile(FILE* fp, int no, size_t offset, size_t length, size_t original_length, int compression_type, bool modified_flag, unsigned char* buffer);
+
 private:
     bool sar_flag;
     int nsa_offset;
     int archive_type;
     int num_of_nsa_archives[2];
     int num_of_ns2_archives;
-    const char *nsa_archive_ext;
-    const char *ns2_archive_ext;
+    const char* nsa_archive_ext;
+    const char* ns2_archive_ext;
     ArchiveInfo archive_info_patch;
     ArchiveInfo archive_info2[2][MAX_EXTRA_ARCHIVE];
     ArchiveInfo archive_info_ns2[MAX_NS2_ARCHIVE];
 
-    size_t getFileLengthSub( ArchiveInfo *ai, const char *file_name );
+    size_t getFileLengthSub(ArchiveInfo* ai, const char* file_name);
 };
 
 #endif // __NSA_READER_H__

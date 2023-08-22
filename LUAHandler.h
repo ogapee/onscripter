@@ -29,7 +29,7 @@
 class ONScripter;
 class ScriptHandler;
 
-class LUAHandler{
+class LUAHandler {
 public:
     enum { LUA_TAG,
            LUA_TEXT0,
@@ -43,31 +43,31 @@ public:
            LUA_RESET,
            MAX_CALLBACK
     };
-           
+
     LUAHandler();
     ~LUAHandler();
 
-    void init(ONScripter *ons, ScriptHandler *sh, 
+    void init(ONScripter* ons, ScriptHandler* sh,
               int screen_ratio1, int screen_ratio2);
     void loadInitScript();
-    void addCallback(const char *label);
+    void addCallback(const char* label);
 
-    int  callFunction(bool is_callback, const char *cmd, void *data=NULL);
+    int callFunction(bool is_callback, const char* cmd, void* data = NULL);
 
     bool isCallbackEnabled(int val);
 
     bool is_animatable;
     int duration_time;
     int next_time;
-    
-    //private:
-    ONScripter *ons;
-    lua_State *state;
-    ScriptHandler *sh;
+
+    // private:
+    ONScripter* ons;
+    lua_State* state;
+    ScriptHandler* sh;
     int screen_ratio1, screen_ratio2;
 
     char error_str[256];
-    
+
     bool callback_state[MAX_CALLBACK];
 };
 

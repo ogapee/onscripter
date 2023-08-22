@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * 
+ *
  *  Encoding.h - Character encoding handler
  *
  *  Copyright (c) 2019-2020 Ogapee. All rights reserved.
@@ -24,29 +24,27 @@
 #ifndef __ENCODING_H__
 #define __ENCODING_H__
 
-class Encoding
-{
+class Encoding {
 public:
     enum { CODE_CP932 = 0,
            CODE_UTF8 = 1
     };
-    
+
     Encoding();
     ~Encoding();
 
     void setEncoding(int code);
-    int getEncoding(){ return code; };
-    
+    int getEncoding() { return code; };
+
     char getTextMarker();
 
     int getBytes(unsigned char ch, int code = -1);
-    int getNum(const unsigned char *buf);
-    
-    unsigned short getUTF16(const char *text, int code = -1);
+    int getNum(const unsigned char* buf);
+
+    unsigned short getUTF16(const char* text, int code = -1);
 
 private:
     int code;
 };
 
-#endif // __ENCODING_H__ 
-
+#endif // __ENCODING_H__

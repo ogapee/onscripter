@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * 
+ *
  *  conv_shared.cpp - Shared code of sarconv and nsaconv
  *
  *  Copyright (c) 2001-2018 Ogapee. All rights reserved.
@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-extern "C"{
+extern "C" {
 #include <jpeglib.h>
 };
 #include <bzlib.h>
@@ -33,126 +33,123 @@ extern "C"{
 int scale_ratio_upper;
 int scale_ratio_lower;
 
-unsigned char *rescaled_tmp2_buffer = NULL;
+unsigned char* rescaled_tmp2_buffer = NULL;
 size_t rescaled_tmp2_length = 0;
-unsigned char *rescaled_tmp_buffer = NULL;
+unsigned char* rescaled_tmp_buffer = NULL;
 size_t rescaled_tmp_length = 0;
 
-static unsigned char *restored_buffer = NULL;
+static unsigned char* restored_buffer = NULL;
 static size_t restored_length = 0;
 
-#define INPUT_BUFFER_SIZE       4096
+#define INPUT_BUFFER_SIZE 4096
 typedef struct {
     struct jpeg_source_mgr pub;
 
-    unsigned char *buf;
+    unsigned char* buf;
     size_t left;
 } my_source_mgr;
 
 typedef struct {
     struct jpeg_destination_mgr pub;
 
-    unsigned char *buf;
+    unsigned char* buf;
     size_t left;
 } my_destination_mgr;
 
-
-void rescaleImage( unsigned char *original_buffer, int width, int height, int byte_per_pixel,
-                   bool src_pad_flag, bool dst_pad_flag, bool palette_flag )
+void rescaleImage(unsigned char* original_buffer, int width, int height, int byte_per_pixel,
+                  bool src_pad_flag, bool dst_pad_flag, bool palette_flag)
 {
     size_t width_pad = 0;
-    if ( src_pad_flag ) width_pad = (4 - width * byte_per_pixel % 4) % 4;
-    
-    size_t w = (int)(width  * scale_ratio_upper / scale_ratio_lower);
-    size_t h = (int)(height * scale_ratio_upper / scale_ratio_lower);
-    if ( w==0 ) w=1;
-    if ( h==0 ) h=1;
-    size_t w_pad = 0;
-    if ( dst_pad_flag ) w_pad = (4 - w * byte_per_pixel % 4) % 4;
+    if (src_pad_flag) width_pad = (4 - width * byte_per_pixel % 4) % 4;
 
-    if  ( (w * byte_per_pixel + w_pad) * h > rescaled_tmp_length ){
+    size_t w = (int)(width * scale_ratio_upper / scale_ratio_lower);
+    size_t h = (int)(height * scale_ratio_upper / scale_ratio_lower);
+    if (w == 0) w = 1;
+    if (h == 0) h = 1;
+    size_t w_pad = 0;
+    if (dst_pad_flag) w_pad = (4 - w * byte_per_pixel % 4) % 4;
+
+    if ((w * byte_per_pixel + w_pad) * h > rescaled_tmp_length) {
         int len = (w * byte_per_pixel + w_pad) * h;
-        if ( rescaled_tmp_buffer ) delete[] rescaled_tmp_buffer;
-        rescaled_tmp_buffer = new unsigned char[ len ];
+        if (rescaled_tmp_buffer) delete[] rescaled_tmp_buffer;
+        rescaled_tmp_buffer = new unsigned char[len];
         rescaled_tmp_length = len;
     }
 
-    size_t len = (width * byte_per_pixel + width_pad) * (height+1) + byte_per_pixel;
-    if ( len<16 ) len = 16;
-    if ( len > rescaled_tmp2_length ){
-        if ( rescaled_tmp2_buffer ) delete[] rescaled_tmp2_buffer;
-        rescaled_tmp2_buffer = new unsigned char[ len ];
+    size_t len = (width * byte_per_pixel + width_pad) * (height + 1) + byte_per_pixel;
+    if (len < 16) len = 16;
+    if (len > rescaled_tmp2_length) {
+        if (rescaled_tmp2_buffer) delete[] rescaled_tmp2_buffer;
+        rescaled_tmp2_buffer = new unsigned char[len];
         rescaled_tmp2_length = len;
     }
 
-    resizeImage( rescaled_tmp_buffer, w, h, w*byte_per_pixel+w_pad,
-                 original_buffer, width, height, width*byte_per_pixel+width_pad,
-                 byte_per_pixel, rescaled_tmp2_buffer, width*byte_per_pixel+width_pad, palette_flag );
+    resizeImage(rescaled_tmp_buffer, w, h, w * byte_per_pixel + w_pad,
+                original_buffer, width, height, width * byte_per_pixel + width_pad,
+                byte_per_pixel, rescaled_tmp2_buffer, width * byte_per_pixel + width_pad, palette_flag);
 }
 
-
-void init_source (j_decompress_ptr cinfo)
+void init_source(j_decompress_ptr cinfo)
 {
 }
 
-boolean fill_input_buffer (j_decompress_ptr cinfo)
+boolean fill_input_buffer(j_decompress_ptr cinfo)
 {
-    my_source_mgr *src = (my_source_mgr *)cinfo->src;
-    
+    my_source_mgr* src = (my_source_mgr*)cinfo->src;
+
     src->pub.next_input_byte = src->buf;
     src->pub.bytes_in_buffer = src->left;
 
     return TRUE;
 }
 
-void skip_input_data (j_decompress_ptr cinfo, long num_bytes)
+void skip_input_data(j_decompress_ptr cinfo, long num_bytes)
 {
-    my_source_mgr *src = (my_source_mgr *)cinfo->src;
-    
-    src->pub.next_input_byte += (size_t) num_bytes;
-    src->pub.bytes_in_buffer -= (size_t) num_bytes;
+    my_source_mgr* src = (my_source_mgr*)cinfo->src;
+
+    src->pub.next_input_byte += (size_t)num_bytes;
+    src->pub.bytes_in_buffer -= (size_t)num_bytes;
 }
 
-void term_source (j_decompress_ptr cinfo)
+void term_source(j_decompress_ptr cinfo)
 {
 }
 
-void init_destination (j_compress_ptr cinfo)
+void init_destination(j_compress_ptr cinfo)
 {
-    my_destination_mgr * dest = (my_destination_mgr *) cinfo->dest;
+    my_destination_mgr* dest = (my_destination_mgr*)cinfo->dest;
 
     dest->pub.next_output_byte = dest->buf;
     dest->pub.free_in_buffer = dest->left;
 }
 
-boolean empty_output_buffer (j_compress_ptr cinfo)
+boolean empty_output_buffer(j_compress_ptr cinfo)
 {
-    my_destination_mgr * dest = (my_destination_mgr *) cinfo->dest;
+    my_destination_mgr* dest = (my_destination_mgr*)cinfo->dest;
 
     dest->pub.next_output_byte = dest->buf;
     dest->pub.free_in_buffer = dest->left;
-    
+
     return TRUE;
 }
 
-void term_destination (j_compress_ptr cinfo)
+void term_destination(j_compress_ptr cinfo)
 {
 }
 
-size_t rescaleJPEGWrite( unsigned int width, unsigned int height, int byte_per_pixel, unsigned char **rescaled_buffer,
-                         int quality, bool bmp2jpeg_flag )
+size_t rescaleJPEGWrite(unsigned int width, unsigned int height, int byte_per_pixel, unsigned char** rescaled_buffer,
+                        int quality, bool bmp2jpeg_flag)
 {
     jpeg_error_mgr jerr;
     struct jpeg_compress_struct cinfo2;
     JSAMPROW row_pointer[1];
-    
+
     cinfo2.err = jpeg_std_error(&jerr);
     jpeg_create_compress(&cinfo2);
 
-    cinfo2.dest = (struct jpeg_destination_mgr *)
-        (*cinfo2.mem->alloc_small) ((j_common_ptr) &cinfo2, JPOOL_PERMANENT,
-                                    sizeof(my_destination_mgr));
-    my_destination_mgr * dest = (my_destination_mgr *) cinfo2.dest;
+    cinfo2.dest = (struct jpeg_destination_mgr*)(*cinfo2.mem->alloc_small)((j_common_ptr)&cinfo2, JPOOL_PERMANENT,
+                                                                           sizeof(my_destination_mgr));
+    my_destination_mgr* dest = (my_destination_mgr*)cinfo2.dest;
 
     dest->buf = *rescaled_buffer;
     dest->left = restored_length;
@@ -162,33 +159,33 @@ size_t rescaleJPEGWrite( unsigned int width, unsigned int height, int byte_per_p
     dest->pub.term_destination = term_destination;
 
     cinfo2.image_width = (int)(width * scale_ratio_upper / scale_ratio_lower);
-    if ( cinfo2.image_width == 0 ) cinfo2.image_width = 1;
+    if (cinfo2.image_width == 0) cinfo2.image_width = 1;
     cinfo2.image_height = (int)(height * scale_ratio_upper / scale_ratio_lower);
-    if ( cinfo2.image_height == 0 ) cinfo2.image_height = 1;
+    if (cinfo2.image_height == 0) cinfo2.image_height = 1;
     cinfo2.input_components = byte_per_pixel;
-    if ( cinfo2.input_components == 1 )
+    if (cinfo2.input_components == 1)
         cinfo2.in_color_space = JCS_GRAYSCALE;
     else
         cinfo2.in_color_space = JCS_RGB;
 
     jpeg_set_defaults(&cinfo2);
-    jpeg_set_quality(&cinfo2, quality, TRUE );
+    jpeg_set_quality(&cinfo2, quality, TRUE);
     cinfo2.optimize_coding = TRUE;
-    //jpeg_simple_progression (&cinfo2);
+    // jpeg_simple_progression (&cinfo2);
     jpeg_start_compress(&cinfo2, TRUE);
 
     int row_stride = cinfo2.image_width * byte_per_pixel;
 
     while (cinfo2.next_scanline < cinfo2.image_height) {
-        if (bmp2jpeg_flag){
-            unsigned char *src = row_pointer[0] = &rescaled_tmp_buffer[(cinfo2.image_height - 1 - cinfo2.next_scanline) * row_stride];
-            for(unsigned int i=0 ; i<cinfo2.image_width ; i++, src+=3){
+        if (bmp2jpeg_flag) {
+            unsigned char* src = row_pointer[0] = &rescaled_tmp_buffer[(cinfo2.image_height - 1 - cinfo2.next_scanline) * row_stride];
+            for (unsigned int i = 0; i < cinfo2.image_width; i++, src += 3) {
                 unsigned char tmp = src[2];
                 src[2] = src[0];
                 src[0] = tmp;
             }
         }
-        else{
+        else {
             row_pointer[0] = &rescaled_tmp_buffer[cinfo2.next_scanline * row_stride];
         }
         jpeg_write_scanlines(&cinfo2, row_pointer, 1);
@@ -202,7 +199,7 @@ size_t rescaleJPEGWrite( unsigned int width, unsigned int height, int byte_per_p
     return datacount;
 }
 
-size_t rescaleJPEG( unsigned char *original_buffer, size_t length, unsigned char **rescaled_buffer, int quality )
+size_t rescaleJPEG(unsigned char* original_buffer, size_t length, unsigned char** rescaled_buffer, int quality)
 {
     struct jpeg_decompress_struct cinfo;
     jpeg_error_mgr jerr;
@@ -210,11 +207,10 @@ size_t rescaleJPEG( unsigned char *original_buffer, size_t length, unsigned char
     cinfo.err = jpeg_std_error(&jerr);
     jpeg_create_decompress(&cinfo);
 
-    cinfo.src = (struct jpeg_source_mgr *)
-        (*cinfo.mem->alloc_small) ((j_common_ptr) &cinfo, JPOOL_PERMANENT,
-                                   sizeof(my_source_mgr));
-    my_source_mgr * src = (my_source_mgr *) cinfo.src;
-    
+    cinfo.src = (struct jpeg_source_mgr*)(*cinfo.mem->alloc_small)((j_common_ptr)&cinfo, JPOOL_PERMANENT,
+                                                                   sizeof(my_source_mgr));
+    my_source_mgr* src = (my_source_mgr*)cinfo.src;
+
     src->buf = original_buffer;
     src->left = length;
 
@@ -230,26 +226,25 @@ size_t rescaleJPEG( unsigned char *original_buffer, size_t length, unsigned char
     jpeg_read_header(&cinfo, TRUE);
     jpeg_start_decompress(&cinfo);
 
-    if ( cinfo.output_width * cinfo.output_height * cinfo.output_components + 0x400 > restored_length ){
+    if (cinfo.output_width * cinfo.output_height * cinfo.output_components + 0x400 > restored_length) {
         restored_length = cinfo.output_width * cinfo.output_height * cinfo.output_components + 0x400;
-        if ( restored_buffer ) delete[] restored_buffer;
-        restored_buffer = new unsigned char[ restored_length ];
-        if ( *rescaled_buffer ) delete[] *rescaled_buffer;
-        *rescaled_buffer = new unsigned char[ restored_length ];
+        if (restored_buffer) delete[] restored_buffer;
+        restored_buffer = new unsigned char[restored_length];
+        if (*rescaled_buffer) delete[] *rescaled_buffer;
+        *rescaled_buffer = new unsigned char[restored_length];
     }
     int row_stride = cinfo.output_width * cinfo.output_components;
 
-    JSAMPARRAY buf = (*cinfo.mem->alloc_sarray)
-        ((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
+    JSAMPARRAY buf = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo, JPOOL_IMAGE, row_stride, 1);
 
-    unsigned char *buf_p = restored_buffer;
+    unsigned char* buf_p = restored_buffer;
     while (cinfo.output_scanline < cinfo.output_height) {
         jpeg_read_scanlines(&cinfo, buf, 1);
-        memcpy( buf_p, buf[0], row_stride );
+        memcpy(buf_p, buf[0], row_stride);
         buf_p += cinfo.output_width * cinfo.output_components;
     }
 
-    rescaleImage( restored_buffer, cinfo.output_width, cinfo.output_height, cinfo.output_components, false, false, false );
+    rescaleImage(restored_buffer, cinfo.output_width, cinfo.output_height, cinfo.output_components, false, false, false);
 
     size_t datacount = rescaleJPEGWrite(cinfo.output_width, cinfo.output_height, cinfo.output_components, rescaled_buffer, quality, false);
     jpeg_destroy_decompress(&cinfo);
@@ -257,22 +252,22 @@ size_t rescaleJPEG( unsigned char *original_buffer, size_t length, unsigned char
     return datacount;
 }
 
-void rescaleBMPWrite( unsigned char *original_buffer, size_t total_size, int width, int height, unsigned char **rescaled_buffer )
+void rescaleBMPWrite(unsigned char* original_buffer, size_t total_size, int width, int height, unsigned char** rescaled_buffer)
 {
     int buffer_offset = original_buffer[10] + (original_buffer[11] << 8);
-    memcpy( *rescaled_buffer, original_buffer, buffer_offset );
-    memcpy( *rescaled_buffer + buffer_offset, rescaled_tmp_buffer, total_size - buffer_offset );
+    memcpy(*rescaled_buffer, original_buffer, buffer_offset);
+    memcpy(*rescaled_buffer + buffer_offset, rescaled_tmp_buffer, total_size - buffer_offset);
 
     *(*rescaled_buffer + 2) = total_size & 0xff;
-    *(*rescaled_buffer + 3) = (total_size >>  8) & 0xff;
+    *(*rescaled_buffer + 3) = (total_size >> 8) & 0xff;
     *(*rescaled_buffer + 4) = (total_size >> 16) & 0xff;
     *(*rescaled_buffer + 5) = (total_size >> 24) & 0xff;
     *(*rescaled_buffer + 18) = width & 0xff;
-    *(*rescaled_buffer + 19) = (width >>  8) & 0xff;
+    *(*rescaled_buffer + 19) = (width >> 8) & 0xff;
     *(*rescaled_buffer + 20) = (width >> 16) & 0xff;
     *(*rescaled_buffer + 21) = (width >> 24) & 0xff;
     *(*rescaled_buffer + 22) = height & 0xff;
-    *(*rescaled_buffer + 23) = (height >>  8) & 0xff;
+    *(*rescaled_buffer + 23) = (height >> 8) & 0xff;
     *(*rescaled_buffer + 24) = (height >> 16) & 0xff;
     *(*rescaled_buffer + 25) = (height >> 24) & 0xff;
     *(*rescaled_buffer + 34) = 0;
@@ -288,24 +283,24 @@ void rescaleBMPWrite( unsigned char *original_buffer, size_t total_size, int wid
 #endif
 }
 
-size_t rescaleBMP( unsigned char *original_buffer, unsigned char **rescaled_buffer,
-                   bool output_jpeg_flag, int quality )
+size_t rescaleBMP(unsigned char* original_buffer, unsigned char** rescaled_buffer,
+                  bool output_jpeg_flag, int quality)
 {
-    if (original_buffer[14] != 40){
+    if (original_buffer[14] != 40) {
         if (original_buffer[14] == 12)
-            fprintf( stderr, " OS/2 format is not supported.\n");
+            fprintf(stderr, " OS/2 format is not supported.\n");
         else
-            fprintf( stderr, " this bitmap can't be handled.\n");
+            fprintf(stderr, " this bitmap can't be handled.\n");
         exit(-1);
     }
 
     int buffer_offset = original_buffer[10] + (original_buffer[11] << 8);
-    int width  = original_buffer[18] + (original_buffer[19] << 8);
+    int width = original_buffer[18] + (original_buffer[19] << 8);
     int height = original_buffer[22] + (original_buffer[23] << 8);
 
     int bit_per_pixel = original_buffer[28];
-    if (bit_per_pixel == 1 || bit_per_pixel == 4){
-        fprintf( stderr, " bit_per_pixel %d is not supported.\n", bit_per_pixel);
+    if (bit_per_pixel == 1 || bit_per_pixel == 4) {
+        fprintf(stderr, " bit_per_pixel %d is not supported.\n", bit_per_pixel);
         exit(-1);
     }
     int byte_per_pixel = bit_per_pixel / 8;
@@ -316,28 +311,28 @@ size_t rescaleBMP( unsigned char *original_buffer, unsigned char **rescaled_buff
     if (bit_per_pixel == 8) palette_flag = true;
     if (palette_flag) output_jpeg_flag = false;
 
-    size_t width2  = (int)(width * scale_ratio_upper / scale_ratio_lower);
-    if ( width2 == 0 ) width2 = 1;
+    size_t width2 = (int)(width * scale_ratio_upper / scale_ratio_lower);
+    if (width2 == 0) width2 = 1;
     size_t width2_pad = (4 - width2 * byte_per_pixel % 4) % 4;
-    
+
     size_t height2 = (int)(height * scale_ratio_upper / scale_ratio_lower);
-    if ( height2 == 0 ) height2 = 1;
+    if (height2 == 0) height2 = 1;
 
     size_t total_size = (width2 * byte_per_pixel + width2_pad) * height2 + buffer_offset;
-    if ( total_size+0x400 > restored_length ){
-        restored_length = total_size+0x400;
-        if ( restored_buffer ) delete[] restored_buffer;
-        restored_buffer = new unsigned char[ restored_length ];
-        if ( *rescaled_buffer ) delete[] *rescaled_buffer;
-        *rescaled_buffer = new unsigned char[ restored_length ];
+    if (total_size + 0x400 > restored_length) {
+        restored_length = total_size + 0x400;
+        if (restored_buffer) delete[] restored_buffer;
+        restored_buffer = new unsigned char[restored_length];
+        if (*rescaled_buffer) delete[] *rescaled_buffer;
+        *rescaled_buffer = new unsigned char[restored_length];
     }
 
-    if (output_jpeg_flag){
-        rescaleImage( original_buffer+buffer_offset, width, height, byte_per_pixel, true, false, palette_flag );
+    if (output_jpeg_flag) {
+        rescaleImage(original_buffer + buffer_offset, width, height, byte_per_pixel, true, false, palette_flag);
         total_size = rescaleJPEGWrite(width, height, byte_per_pixel, rescaled_buffer, quality, true);
     }
     else {
-        rescaleImage( original_buffer+buffer_offset, width, height, byte_per_pixel, true, true, palette_flag );
+        rescaleImage(original_buffer + buffer_offset, width, height, byte_per_pixel, true, true, palette_flag);
         rescaleBMPWrite(original_buffer, total_size, width2, height2, rescaled_buffer);
     }
 

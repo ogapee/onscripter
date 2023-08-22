@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * 
+ *
  *  sarconv.cpp - Images in SAR archive are re-scaled to 320x240 size
  *
  *  Copyright (c) 2001-2006 Ogapee. All rights reserved.
@@ -31,10 +31,10 @@
 extern int scale_ratio_upper;
 extern int scale_ratio_lower;
 
-extern size_t rescaleJPEG( unsigned char *original_buffer, size_t length, unsigned char **rescaled_buffer,
-                           int quality );
-extern size_t rescaleBMP( unsigned char *original_buffer, unsigned char **rescaled_buffer,
-                          bool output_jpeg_flag, int quality );
+extern size_t rescaleJPEG(unsigned char* original_buffer, size_t length, unsigned char** rescaled_buffer,
+                          int quality);
+extern size_t rescaleBMP(unsigned char* original_buffer, unsigned char** rescaled_buffer,
+                         bool output_jpeg_flag, int quality);
 
 #ifdef main
 #undef main
@@ -49,7 +49,7 @@ void help()
     exit(-1);
 }
 
-int main( int argc, char **argv )
+int main(int argc, char** argv)
 {
     SarReader cSR;
     unsigned long length, offset = 0, buffer_length = 0;
@@ -57,13 +57,14 @@ int main( int argc, char **argv )
     unsigned int i, count;
     bool bmp2jpeg_flag = false;
     int quality = 75;
-    FILE *fp;
+    FILE* fp;
 
     argc--; // skip command name
     argv++;
-    while (argc > 4){
-        if      ( !strcmp( argv[0], "-j" ) )    bmp2jpeg_flag = true;
-        else if ( !strcmp( argv[0], "-q" ) ){
+    while (argc > 4) {
+        if (!strcmp(argv[0], "-j"))
+            bmp2jpeg_flag = true;
+        else if (!strcmp(argv[0], "-q")) {
             argc--;
             argv++;
             quality = atoi(argv[0]);
@@ -74,63 +75,63 @@ int main( int argc, char **argv )
     if (argc != 4) help();
 
     scale_ratio_lower = atoi(argv[0]); // src width
-    if (scale_ratio_lower!=640 && scale_ratio_lower!=800) help();
-    
+    if (scale_ratio_lower != 640 && scale_ratio_lower != 800) help();
+
     scale_ratio_upper = atoi(argv[1]); // dst width
-    
-    if ( (fp = fopen( argv[3], "wb" ) ) == NULL ){
-        fprintf( stderr, "can't open file %s for writing.\n", argv[3] );
+
+    if ((fp = fopen(argv[3], "wb")) == NULL) {
+        fprintf(stderr, "can't open file %s for writing.\n", argv[3]);
         exit(-1);
     }
-    if (cSR.open( argv[2] ) != 0){
-        fprintf( stderr, "can't open file %s\n", argv[2] );
+    if (cSR.open(argv[2]) != 0) {
+        fprintf(stderr, "can't open file %s\n", argv[2]);
         exit(-1);
     }
     count = cSR.getNumFiles();
 
     SarReader::FileInfo sFI;
-    
-    for ( i=0 ; i<count ; i++ ){
-        printf( "%d/%d\n", i, count );
-        sFI = cSR.getFileByIndex( i );
-        if ( i==0 ) offset = sFI.offset;
-        length = cSR.getFileLength( sFI.name );
-        if ( length > buffer_length ){
-            if ( buffer ) delete[] buffer;
+
+    for (i = 0; i < count; i++) {
+        printf("%d/%d\n", i, count);
+        sFI = cSR.getFileByIndex(i);
+        if (i == 0) offset = sFI.offset;
+        length = cSR.getFileLength(sFI.name);
+        if (length > buffer_length) {
+            if (buffer) delete[] buffer;
             buffer = new unsigned char[length];
             buffer_length = length;
         }
 
         sFI.offset = offset;
-        if ( (strlen( sFI.name ) > 3 && !strcmp( sFI.name + strlen( sFI.name ) - 3, "JPG")) ||
-             (strlen( sFI.name ) > 4 && !strcmp( sFI.name + strlen( sFI.name ) - 4, "JPEG")) ){
-            if ( cSR.getFile( sFI.name, buffer ) != length ){
-                fprintf( stderr, "file %s can't be retrieved %ld\n", sFI.name, length );
+        if ((strlen(sFI.name) > 3 && !strcmp(sFI.name + strlen(sFI.name) - 3, "JPG")) ||
+            (strlen(sFI.name) > 4 && !strcmp(sFI.name + strlen(sFI.name) - 4, "JPEG"))) {
+            if (cSR.getFile(sFI.name, buffer) != length) {
+                fprintf(stderr, "file %s can't be retrieved %ld\n", sFI.name, length);
                 continue;
             }
-            sFI.length = rescaleJPEG( buffer, length, &rescaled_buffer, quality );
-            cSR.putFile( fp, i, sFI.offset, sFI.length, sFI.length, true, rescaled_buffer );
+            sFI.length = rescaleJPEG(buffer, length, &rescaled_buffer, quality);
+            cSR.putFile(fp, i, sFI.offset, sFI.length, sFI.length, true, rescaled_buffer);
         }
-        else if ( strlen( sFI.name ) > 3 && !strcmp( sFI.name + strlen( sFI.name ) - 3, "BMP") ){
-            if ( cSR.getFile( sFI.name, buffer ) != length ){
-                fprintf( stderr, "file %s can't be retrieved %ld\n", sFI.name, length );
+        else if (strlen(sFI.name) > 3 && !strcmp(sFI.name + strlen(sFI.name) - 3, "BMP")) {
+            if (cSR.getFile(sFI.name, buffer) != length) {
+                fprintf(stderr, "file %s can't be retrieved %ld\n", sFI.name, length);
                 continue;
             }
-            sFI.length = rescaleBMP( buffer, &rescaled_buffer, bmp2jpeg_flag, quality );
-            cSR.putFile( fp, i, sFI.offset, sFI.length, sFI.length, true, rescaled_buffer );
+            sFI.length = rescaleBMP(buffer, &rescaled_buffer, bmp2jpeg_flag, quality);
+            cSR.putFile(fp, i, sFI.offset, sFI.length, sFI.length, true, rescaled_buffer);
         }
-        else{
-            cSR.putFile( fp, i, sFI.offset, sFI.length, sFI.original_length, false, buffer );
+        else {
+            cSR.putFile(fp, i, sFI.offset, sFI.length, sFI.original_length, false, buffer);
         }
-        
+
         offset += sFI.length;
     }
-    cSR.writeHeader( fp );
+    cSR.writeHeader(fp);
 
     fclose(fp);
 
-    if ( rescaled_buffer ) delete[] rescaled_buffer;
-    if ( buffer ) delete[] buffer;
-    
+    if (rescaled_buffer) delete[] rescaled_buffer;
+    if (buffer) delete[] buffer;
+
     return 0;
 }

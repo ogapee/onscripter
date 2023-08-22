@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * 
+ *
  *  FontInfo.h - Font information storage class of ONScripter
  *
  *  Copyright (c) 2001-2020 Ogapee. All rights reserved.
@@ -30,12 +30,12 @@
 
 typedef unsigned char uchar3[3];
 
-class FontInfo{
+class FontInfo {
 public:
     enum { YOKO_MODE = 0,
            TATE_MODE = 1
     };
-    void *ttf_font[2]; // 0...normal rendering, 1...outline rendering
+    void* ttf_font[2]; // 0...normal rendering, 1...outline rendering
     uchar3 color;
     uchar3 on_color, off_color, nofile_color;
     int font_size_xy[2];
@@ -49,38 +49,38 @@ public:
     bool is_shadow;
     bool is_transparent;
     bool is_newline_accepted;
-    uchar3  window_color;
+    uchar3 window_color;
 
     int line_offset_xy[2]; // ruby offset for each line
     bool rubyon_flag;
     int tateyoko_mode;
-    Encoding *enc; // encoding
+    Encoding* enc; // encoding
     bool is_line_space_fixed;
 
     FontInfo();
-    void reset(Encoding *enc);
-    void *openFont( char *font_file, int ratio1, int ratio2 );
-    void setTateyokoMode( int tateyoko_mode );
+    void reset(Encoding* enc);
+    void* openFont(char* font_file, int ratio1, int ratio2);
+    void setTateyokoMode(int tateyoko_mode);
     int getTateyokoMode();
     int getRemainingLine();
     void toggleStyle(int style);
-    
-    int x(bool use_ruby_offset=true);
-    int y(bool use_ruby_offset=true);
-    void setXY( int x=-1, int y=-1 );
+
+    int x(bool use_ruby_offset = true);
+    int y(bool use_ruby_offset = true);
+    void setXY(int x = -1, int y = -1);
     void clear();
     void newLine();
-    void setLineArea(const char *buf);
+    void setLineArea(const char* buf);
 
-    bool isEndOfLine(float margin=0.);
+    bool isEndOfLine(float margin = 0.);
     bool isLineEmpty();
     void advanceCharInHankaku(float offest);
     void addLineOffset(int margin);
     void setRubyOnFlag(bool flag);
 
     SDL_Rect calcUpdatedArea(int start_xy[2], int ratio1, int ratio2);
-    void addShadeArea(SDL_Rect &rect, int dx, int dy, int dw, int dh);
-    int initRuby(FontInfo &body_info, int body_count, int ruby_count);
+    void addShadeArea(SDL_Rect& rect, int dx, int dy, int dw, int dh);
+    int initRuby(FontInfo& body_info, int body_count, int ruby_count);
 };
 
 #endif // __FONT_INFO_H__

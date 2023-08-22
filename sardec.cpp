@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * 
+ *
  *  sardec.cpp - SAR archive decoder
  *
  *  Copyright (c) 2001-2004 Ogapee. All rights reserved.
@@ -31,67 +31,67 @@
 
 extern int errno;
 
-int main( int argc, char **argv )
+int main(int argc, char** argv)
 {
     SarReader cSR;
     unsigned long length, buffer_length = 0;
-    unsigned char *buffer = NULL;
+    unsigned char* buffer = NULL;
     char file_name[256], dir_name[256];
     unsigned int i, j, count;
-    FILE *fp;
+    FILE* fp;
     struct stat file_stat;
 
-    if ( argc != 2 ){
-        fprintf( stderr, "Usage: sardec arc_file\n");
+    if (argc != 2) {
+        fprintf(stderr, "Usage: sardec arc_file\n");
         exit(-1);
     }
-    if (cSR.open( argv[1] ) != 0){
-        fprintf( stderr, "can't open file %s\n", argv[1] );
+    if (cSR.open(argv[1]) != 0) {
+        fprintf(stderr, "can't open file %s\n", argv[1]);
         exit(-1);
     }
     count = cSR.getNumFiles();
 
     SarReader::FileInfo sFI;
-    
-    for ( i=0 ; i<count ; i++ ){
-        sFI = cSR.getFileByIndex( i );
-        
-        length = cSR.getFileLength( sFI.name );
 
-        if ( length > buffer_length ){
-            if ( buffer ) delete[] buffer;
+    for (i = 0; i < count; i++) {
+        sFI = cSR.getFileByIndex(i);
+
+        length = cSR.getFileLength(sFI.name);
+
+        if (length > buffer_length) {
+            if (buffer) delete[] buffer;
             buffer = new unsigned char[length];
             buffer_length = length;
         }
-        if ( cSR.getFile( sFI.name, buffer ) != length ){
-            fprintf( stderr, "file %s can't be retrieved\n", sFI.name );
+        if (cSR.getFile(sFI.name, buffer) != length) {
+            fprintf(stderr, "file %s can't be retrieved\n", sFI.name);
             continue;
         }
-        
-        strcpy( file_name, sFI.name );
-        for ( j=0 ; j<strlen(file_name) ; j++ ){
-            if ( file_name[j] == '\\' ){
+
+        strcpy(file_name, sFI.name);
+        for (j = 0; j < strlen(file_name); j++) {
+            if (file_name[j] == '\\') {
                 file_name[j] = '/';
-                strncpy( dir_name, file_name, j );
+                strncpy(dir_name, file_name, j);
                 dir_name[j] = '\0';
 
                 /* If the directory does'nt exist, create it */
-                if ( stat ( dir_name, &file_stat ) == -1 && errno == ENOENT )
-                    mkdir( dir_name, 00755 );
+                if (stat(dir_name, &file_stat) == -1 && errno == ENOENT)
+                    mkdir(dir_name, 00755);
             }
         }
-    
-        printf("opening %s\n", file_name );
-        if ( (fp = fopen( file_name, "wb" ) )){
-            fwrite( buffer, 1, length, fp );
+
+        printf("opening %s\n", file_name);
+        if ((fp = fopen(file_name, "wb"))) {
+            fwrite(buffer, 1, length, fp);
             fclose(fp);
         }
-        else{
+        else {
             printf(" ... falied\n");
         }
     }
-    
-    if ( buffer ) delete[] buffer;
-    
+
+    if (buffer) delete[] buffer;
+
     exit(0);
 }
