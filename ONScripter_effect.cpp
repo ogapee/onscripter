@@ -2,7 +2,7 @@
  *
  *  ONScripter_effect.cpp - Effect executer of ONScripter
  *
- *  Copyright (c) 2001-2020 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2023 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -81,6 +81,7 @@ bool ONScripter::setEffect(EffectLink* effect)
     if (effect_no == 15 || effect_no == 18) {
         if (!effect->anim.image_surface) {
             parseTaggedString(&effect->anim);
+            effect->anim.trans_mode = AnimationInfo::TRANS_MASK;
             setupAnimationInfo(&effect->anim);
         }
     }
