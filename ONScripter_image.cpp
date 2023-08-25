@@ -2,7 +2,7 @@
  *
  *  ONScripter_image.cpp - Image processing in ONScripter
  *
- *  Copyright (c) 2001-2019 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2023 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -257,7 +257,6 @@ void ONScripter::alphaBlend(SDL_Surface* mask_surface,
                             int trans_mode, Uint32 mask_value, SDL_Rect* clip)
 {
     SDL_Rect rect = screen_rect;
-    int i, j;
 
     /* ---------------------------------------- */
     /* clipping */
@@ -300,11 +299,11 @@ void ONScripter::alphaBlend(SDL_Surface* mask_surface,
     if ((trans_mode == ALPHA_BLEND_FADE_MASK ||
          trans_mode == ALPHA_BLEND_CROSSFADE_MASK) &&
         mask_surface) {
-        for (i = 0; i < rect.h; i++) {
+        for (int i = 0; i < rect.h; i++) {
             ONSBuf* mask_buffer = (ONSBuf*)mask_surface->pixels + mask_surface->w * ((rect.y + i) % mask_surface->h);
 
-            int j2 = rect.x;
-            for (j = 0; j < rect.w; j++) {
+            for (int j = 0; j < rect.w; j++) {
+                int j2 = (rect.x + j) % mask_surface->w;
                 Uint32 alpha = 0;
                 Uint32 mask = *(mask_buffer + j2) & lowest_mask;
                 if (mask_value > mask) {
@@ -316,11 +315,6 @@ void ONScripter::alphaBlend(SDL_Surface* mask_surface,
                 src1_buffer++;
                 src2_buffer++;
                 dst_buffer++;
-
-                if (j2 >= mask_surface->w)
-                    j2 = 0;
-                else
-                    j2++;
             }
             src1_buffer += screen_width - rect.w;
             src2_buffer += screen_width - rect.w;
@@ -330,8 +324,8 @@ void ONScripter::alphaBlend(SDL_Surface* mask_surface,
     else { // ALPHA_BLEND_CONST
         Uint32 alpha = (mask_value & lowest_mask) + 1;
 
-        for (i = 0; i < rect.h; i++) {
-            for (j = rect.w; j != 0; j--) {
+        for (int i = 0; i < rect.h; i++) {
+            for (int j = 0; j < rect.w; j++) {
                 BLEND_PIXEL_MASK();
                 src1_buffer++;
                 src2_buffer++;

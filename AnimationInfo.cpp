@@ -2,7 +2,7 @@
  *
  *  AnimationInfo.cpp - General image storage class of ONScripter
  *
- *  Copyright (c) 2001-2020 Ogapee. All rights reserved.
+ *  Copyright (c) 2001-2023 Ogapee. All rights reserved.
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -929,7 +929,6 @@ SDL_Surface* AnimationInfo::setupImageAlpha(SDL_Surface* surface, SDL_Surface* s
     }
     ref_color &= 0xffffff;
 
-    int i, j, c;
     if (trans_mode == TRANS_ALPHA && !has_alpha) {
         const int w22 = w2 / 2;
         const int w3 = w22 * num_of_cells;
@@ -946,9 +945,9 @@ SDL_Surface* AnimationInfo::setupImageAlpha(SDL_Surface* surface, SDL_Surface* s
         alphap = (unsigned char*)buffer2;
 #endif
 
-        for (i = h; i != 0; i--) {
-            for (c = num_of_cells; c != 0; c--) {
-                for (j = w22; j != 0; j--, buffer++, alphap += 4) {
+        for (int i = 0; i < h; i++) {
+            for (int c = 0; c < num_of_cells; c++) {
+                for (int j = 0; j < w22; j++, buffer++, alphap += 4) {
                     *buffer2++ = *buffer;
                     *alphap = (*(buffer + w22) & 0xff) ^ 0xff;
                 }
@@ -966,26 +965,14 @@ SDL_Surface* AnimationInfo::setupImageAlpha(SDL_Surface* surface, SDL_Surface* s
     else if (trans_mode == TRANS_MASK) {
         if (surface_m) {
             SDL_LockSurface(surface_m);
-            const int mw = surface_m->w;
-            const int mwh = surface_m->w * surface_m->h;
-
-            int i2 = 0;
-            for (i = h; i != 0; i--) {
-                Uint32* buffer_m = (Uint32*)surface_m->pixels + i2;
-                for (c = num_of_cells; c != 0; c--) {
-                    int j2 = 0;
-                    for (j = w2; j != 0; j--, buffer++, alphap += 4) {
+            for (int i = 0; i < h; i++) {
+                Uint32* buffer_m = (Uint32*)surface_m->pixels + surface_m->w * (i % surface_m->h);
+                for (int c = 0; c < num_of_cells; c++) {
+                    for (int j = 0; j < w2; j++, buffer++, alphap += 4) {
+                        int j2 = j % surface_m->w;
                         *alphap = (*(buffer_m + j2) & 0xff) ^ 0xff;
-                        if (j2 >= mw)
-                            j2 = 0;
-                        else
-                            j2++;
                     }
                 }
-                if (i2 >= mwh)
-                    i2 = 0;
-                else
-                    i2 += mw;
             }
             SDL_UnlockSurface(surface_m);
         }
@@ -993,26 +980,20 @@ SDL_Surface* AnimationInfo::setupImageAlpha(SDL_Surface* surface, SDL_Surface* s
     else if (trans_mode == TRANS_TOPLEFT ||
              trans_mode == TRANS_TOPRIGHT ||
              trans_mode == TRANS_DIRECT) {
-        for (i = h; i != 0; i--) {
-            for (j = w; j != 0; j--, buffer++, alphap += 4) {
-                if ((*buffer & 0xffffff) == ref_color)
-                    *alphap = 0x00;
-                else
-                    *alphap = 0xff;
-            }
+        for (int i = 0; i < w * h; i++, buffer++, alphap += 4) {
+            if ((*buffer & 0xffffff) == ref_color)
+                *alphap = 0x00;
+            else
+                *alphap = 0xff;
         }
     }
     else if (trans_mode == TRANS_STRING) {
-        for (i = h; i != 0; i--) {
-            for (j = w; j != 0; j--, buffer++, alphap += 4)
-                *alphap = *buffer >> 24;
-        }
+        for (int i = 0; i < w * h; i++, buffer++, alphap += 4)
+            *alphap = *buffer >> 24;
     }
     else if (trans_mode != TRANS_ALPHA) { // TRANS_COPY
-        for (i = h; i != 0; i--) {
-            for (j = w; j != 0; j--, buffer++, alphap += 4)
-                *alphap = 0xff;
-        }
+        for (int i = 0; i < w * h; i++, buffer++, alphap += 4)
+            *alphap = 0xff;
     }
 
     SDL_UnlockSurface(surface);
