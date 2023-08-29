@@ -139,7 +139,12 @@ void ONScripter::initSDL()
     screen_width = script_h.screen_width;
     screen_height = script_h.screen_height;
 #endif
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+    window = SDL_CreateWindow(NULL, 0, 0, screen_width, screen_height, SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS);
+    screen_surface = SDL_GetWindowSurface(window);
+#else
     screen_surface = SDL_SetVideoMode(screen_width, screen_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG | (fullscreen_mode ? SDL_FULLSCREEN : 0));
+#endif
 #ifdef BPP16
     texture_format = SDL_PIXELFORMAT_RGB565;
 #else
@@ -184,7 +189,11 @@ void ONScripter::initSDL()
     memcpy(wm_title_string, DEFAULT_WM_TITLE, strlen(DEFAULT_WM_TITLE) + 1);
     wm_icon_string = new char[strlen(DEFAULT_WM_ICON) + 1];
     memcpy(wm_icon_string, DEFAULT_WM_TITLE, strlen(DEFAULT_WM_ICON) + 1);
+#if defined(USE_SDL_RENDERER)
+    SDL_SetWindowTitle(window, wm_title_string);
+#elif !SDL_VERSION_ATLEAST(2, 0, 0)
     SDL_WM_SetCaption(wm_title_string, wm_icon_string);
+#endif
 }
 
 void ONScripter::openAudio(int freq)
@@ -689,10 +698,15 @@ void ONScripter::flushDirect(SDL_Rect& rect, int refresh_mode)
     SDL_Rect dst_rect = rect;
     if (AnimationInfo::doClipping(&dst_rect, &screen_rect) || dst_rect.w == 0 || dst_rect.h == 0) return;
     SDL_BlitSurface(accumulation_surface, &dst_rect, screen_surface, &dst_rect);
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+    SDL_UpdateWindowSurfaceRects(window, &dst_rect, 1);
+#else
     SDL_UpdateRect(screen_surface, dst_rect.x, dst_rect.y, dst_rect.w, dst_rect.h);
+#endif
 #endif
 }
 
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
 void ONScripter::flushDirectYUV(SDL_Overlay* overlay)
 {
 #ifdef USE_SDL_RENDERER
@@ -704,6 +718,7 @@ void ONScripter::flushDirectYUV(SDL_Overlay* overlay)
     SDL_RenderPresent(renderer);
 #endif
 }
+#endif
 
 void ONScripter::mouseOverCheck(int x, int y)
 {
@@ -983,7 +998,14 @@ void ONScripter::refreshMouseOverButton()
     shift_over_button = -1;
     current_button_link = root_button_link.next;
     SDL_GetMouseState(&mx, &my);
-    if (!(SDL_GetAppState() & SDL_APPMOUSEFOCUS)) {
+#if defined(USE_SDL_RENDERER)
+    if (!(SDL_GetWindowFlags(window) & SDL_WINDOW_MOUSE_FOCUS))
+#elif !SDL_VERSION_ATLEAST(2, 0, 0)
+    if (!(SDL_GetAppState() & SDL_APPMOUSEFOCUS))
+#else
+    if (0)
+#endif
+    {
         mx = screen_device_width;
         my = screen_device_height;
     }

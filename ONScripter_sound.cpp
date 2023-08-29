@@ -84,7 +84,11 @@ int ONScripter::playSound(const char* filename, int format, bool loop_flag, int 
     }
 
     if (format & SOUND_MUSIC) {
+#if SDL_MIXER_MAJOR_VERSION >= 2
+        music_info = Mix_LoadMUS_RW(SDL_RWFromMem(buffer, length), 0);
+#else
         music_info = Mix_LoadMUS_RW(SDL_RWFromMem(buffer, length));
+#endif
         Mix_VolumeMusic(music_volume);
         Mix_HookMusicFinished(musicFinishCallback);
         if (Mix_PlayMusic(music_info, (music_play_loop_flag && music_loopback_offset == 0.0) ? -1 : 0) == 0) {
@@ -201,6 +205,18 @@ int ONScripter::playMIDI(bool loop_flag)
 
 #if defined(USE_SMPEG)
 #if defined(USE_SDL_RENDERER)
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+typedef struct
+{
+    SMPEG_Frame* frame;
+    SDL_mutex* mutex;
+} update_context;
+static void smpeg_update_callback(void* data, SMPEG_Frame* frame)
+{
+    update_context* c = (update_context*)data;
+    c->frame = frame;
+}
+#else
 struct OverlayInfo {
     SDL_Overlay overlay;
     SDL_mutex* mutex;
@@ -222,6 +238,7 @@ static void smpeg_filter_callback(SDL_Overlay* dst, SDL_Overlay* src, SDL_Rect* 
 static void smpeg_filter_destroy(struct SMPEG_Filter* filter)
 {
 }
+#endif
 #elif defined(ANDROID)
 static void smpeg_filter_callback(SDL_Overlay* dst, SDL_Overlay* src, SDL_Rect* region, SMPEG_FilterInfo* filter_info, void* data)
 {
@@ -261,7 +278,11 @@ int ONScripter::playMPEG(const char* filename, bool click_flag, bool loop_flag, 
     layer_smpeg_buffer = new unsigned char[length];
     script_h.cBR->getFile(filename, layer_smpeg_buffer);
     SMPEG_Info info;
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+    layer_smpeg_sample = SMPEG_new_rwops(SDL_RWFromMem(layer_smpeg_buffer, length), &info, 0, 0);
+#else
     layer_smpeg_sample = SMPEG_new_rwops(SDL_RWFromMem(layer_smpeg_buffer, length), &info, 0);
+#endif
     unsigned char packet_code[4] = {0x00, 0x00, 0x01, 0xba};
     if (SMPEG_error(layer_smpeg_sample) ||
         layer_smpeg_buffer[0] != packet_code[0] ||
@@ -294,6 +315,15 @@ int ONScripter::playMPEG(const char* filename, bool click_flag, bool loop_flag, 
     SMPEG_enablevideo(layer_smpeg_sample, 1);
 
 #if defined(USE_SDL_RENDERER)
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+    update_context c;
+    c.mutex = SDL_CreateMutex();
+    SMPEG_setdisplay(layer_smpeg_sample, smpeg_update_callback, &c, c.mutex);
+
+    int texture_width = (info.width + 15) & ~15;
+    int texture_height = (info.height + 15) & ~15;
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12, SDL_TEXTUREACCESS_STREAMING, texture_width, texture_height);
+#else
     SMPEG_setdisplay(layer_smpeg_sample, accumulation_surface, NULL, NULL);
 
     OverlayInfo oi;
@@ -320,6 +350,7 @@ int ONScripter::playMPEG(const char* filename, bool click_flag, bool loop_flag, 
     layer_smpeg_filter.callback = smpeg_filter_callback;
     layer_smpeg_filter.destroy = smpeg_filter_destroy;
     SMPEG_filter(layer_smpeg_sample, &layer_smpeg_filter);
+#endif
 #elif defined(ANDROID)
     SMPEG_setdisplay(layer_smpeg_sample, screen_surface, NULL, NULL);
     AnimationInfo* smpeg_info_back = smpeg_info;
@@ -367,7 +398,24 @@ int ONScripter::playMPEG(const char* filename, bool click_flag, bool loop_flag, 
             }
         }
 
-#if defined(USE_SDL_RENDERER)
+#if defined(USE_SDL_RENDERER) && SDL_VERSION_ATLEAST(2, 0, 0)
+        bool updated_frame = false;
+        SDL_mutexP(c.mutex);
+        if (c.frame) {
+            SDL_UpdateTexture(texture, NULL, c.frame->image, c.frame->image_width);
+            updated_frame = true;
+        }
+        SDL_mutexV(c.mutex);
+        if (updated_frame) {
+            SDL_Rect r;
+            r.x = 0;
+            r.y = 0;
+            r.w = info.width;
+            r.h = info.height;
+            SDL_RenderCopy(renderer, texture, &r, NULL);
+            SDL_RenderPresent(renderer);
+        }
+#elif defined(USE_SDL_RENDERER) && !SDL_VERSION_ATLEAST(2, 0, 0)
         SDL_mutexP(oi.mutex);
         flushDirectYUV(&oi.overlay);
         SDL_mutexV(oi.mutex);
@@ -384,7 +432,11 @@ int ONScripter::playMPEG(const char* filename, bool click_flag, bool loop_flag, 
     stopSMPEG();
     if (!nosound_flag)
         openAudio();
-#if defined(USE_SDL_RENDERER)
+#if defined(USE_SDL_RENDERER) && SDL_VERSION_ATLEAST(2, 0, 0)
+    SDL_DestroyMutex(c.mutex);
+    SDL_DestroyTexture(texture);
+    texture = SDL_CreateTextureFromSurface(renderer, accumulation_surface);
+#elif defined(USE_SDL_RENDERER) && !SDL_VERSION_ATLEAST(2, 0, 0)
     delete[] pixel_buf;
     SDL_DestroyMutex(oi.mutex);
     texture = SDL_CreateTextureFromSurface(renderer, accumulation_surface);

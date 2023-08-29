@@ -27,6 +27,10 @@
 #include <SDL.h>
 #include <string.h>
 
+#if defined(USE_SMPEG) && SDL_VERSION_ATLEAST(2, 0, 0)
+#include <smpeg.h>
+#endif
+
 #ifndef _SDL_pixels_h
 #define SDL_PIXELFORMAT_RGB565 0
 #define SDL_PIXELFORMAT_ABGR8888 1
@@ -159,7 +163,11 @@ public:
     void setImage(SDL_Surface* surface, Uint32 texture_format);
     unsigned char getAlpha(int x, int y);
 
+#if defined(USE_SMPEG) && SDL_VERSION_ATLEAST(2, 0, 0)
+    void convertFromYUV(SMPEG_Frame* src);
+#elif defined(USE_SMPEG) && !SDL_VERSION_ATLEAST(2, 0, 0)
     void convertFromYUV(SDL_Overlay* src);
+#endif
     void subtract(SDL_Surface* surface, AnimationInfo* layer_info, unsigned char* layer_alpha_buf);
 };
 

@@ -108,8 +108,13 @@ int ONScripter::drawGlyph(SDL_Surface* dst_surface, FontInfo* info, SDL_Color& c
     bool rotate_flag = false;
     if (info->getTateyokoMode() == FontInfo::TATE_MODE && IS_ROTATION_REQUIRED(text)) rotate_flag = true;
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+    dst_rect.x = xy[0];
+    dst_rect.y = xy[1];
+#else
     dst_rect.x = xy[0] + minx;
     dst_rect.y = xy[1] + TTF_FontAscent((TTF_Font*)info->ttf_font[0]) - maxy;
+#endif
     if (script_h.enc.getEncoding() == Encoding::CODE_CP932)
         dst_rect.y -= (TTF_FontHeight((TTF_Font*)info->ttf_font[0]) - info->font_size_xy[1] * screen_ratio1 / screen_ratio2) / 2;
 
