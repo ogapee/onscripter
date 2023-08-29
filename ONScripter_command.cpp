@@ -1604,7 +1604,11 @@ int ONScripter::movemousecursorCommand()
     x = x * screen_device_width / screen_width;
     y = y * screen_device_width / screen_width;
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+    SDL_WarpMouseInWindow(window, x, y);
+#else
     SDL_WarpMouse(x, y);
+#endif
     
     return RET_CONTINUE;
 }
@@ -1635,6 +1639,9 @@ int ONScripter::menu_windowCommand()
 {
     if ( fullscreen_mode ){
 #if !defined(PSP)
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+        SDL_SetWindowFullscreen(window, 0);
+#else
         if ( !SDL_WM_ToggleFullScreen( screen_surface ) ){
             screen_surface = SDL_SetVideoMode( screen_device_width, screen_device_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG );
 #ifdef ANDROID
@@ -1642,6 +1649,7 @@ int ONScripter::menu_windowCommand()
 #endif            
             flushDirect( screen_rect, refreshMode() );
         }
+#endif
 #endif
         fullscreen_mode = false;
     }
@@ -1653,6 +1661,9 @@ int ONScripter::menu_fullCommand()
 {
     if ( !fullscreen_mode ){
 #if !defined(PSP)
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+        SDL_SetWindowFullscreen(window, 0);
+#else
         if ( !SDL_WM_ToggleFullScreen( screen_surface ) ){
             screen_surface = SDL_SetVideoMode( screen_device_width, screen_device_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG|SDL_FULLSCREEN );
 #ifdef ANDROID
@@ -1660,6 +1671,7 @@ int ONScripter::menu_fullCommand()
 #endif            
             flushDirect( screen_rect, refreshMode() );
         }
+#endif
 #endif
         fullscreen_mode = true;
     }
@@ -2022,7 +2034,17 @@ int ONScripter::ldCommand()
 
     return RET_CONTINUE;
 }
-#if defined(USE_SMPEG)
+#if defined(USE_SMPEG) && SDL_VERSION_ATLEAST(2, 0, 0)
+static void smpeg_update_callback(void *data, SMPEG_Frame *frame)
+{
+    ONScripter *ons = (ONScripter*)data;
+    AnimationInfo *ai = ons->getSMPEGInfo();
+    if (!ai) return;
+
+    ai->convertFromYUV(frame);
+    ons->updateEffect();
+}
+#elif defined(USE_SMPEG) && !SDL_VERSION_ATLEAST(2, 0, 0)
 static void smpeg_filter_callback( SDL_Overlay * dst, SDL_Overlay * src, SDL_Rect * region, SMPEG_FilterInfo * filter_info, void * data )
 {
     if (dst){
@@ -2064,24 +2086,34 @@ int ONScripter::layermessageCommand()
             layer_smpeg_buffer = new unsigned char[length];
             script_h.cBR->getFile( buf+5, layer_smpeg_buffer );
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+            layer_smpeg_sample = SMPEG_new_rwops( SDL_RWFromMem( layer_smpeg_buffer, length ), NULL, 0, 0 );
+#else
             layer_smpeg_sample = SMPEG_new_rwops( SDL_RWFromMem( layer_smpeg_buffer, length ), NULL, 0 );
+#endif
 
             if ( SMPEG_error( layer_smpeg_sample ) ) return RET_CONTINUE;
 
             SMPEG_enableaudio( layer_smpeg_sample, 0 );
             SMPEG_enablevideo( layer_smpeg_sample, 1 );
 #ifdef USE_SDL_RENDERER
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+            SMPEG_setdisplay( layer_smpeg_sample, smpeg_update_callback, NULL,  NULL);
+#else
             // workaround to set a non-NULL value in the second argument
             SMPEG_setdisplay( layer_smpeg_sample, accumulation_surface, NULL,  NULL);
+#endif
 #else
             SMPEG_setdisplay( layer_smpeg_sample, screen_surface, NULL,  NULL);
 #endif            
         }
         else if (strcmp(buf, "play") == 0){
             smpeg_info->visible = true;
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
             layer_smpeg_filter.data = this;
             layer_smpeg_filter.callback = smpeg_filter_callback;
             layer_smpeg_filter.destroy = smpeg_filter_destroy;
+#endif
             SMPEG_filter( layer_smpeg_sample, &layer_smpeg_filter );
             SMPEG_loop( layer_smpeg_sample, layer_smpeg_loop_flag?1:0);
             SMPEG_renderFrame( layer_smpeg_sample, 1 );
@@ -3450,9 +3482,9 @@ int ONScripter::captionCommand()
     size_t len = strlen(buf);
 
     char *buf2 = new char[len*3+1];
-#if defined(MACOSX) && (SDL_COMPILEDVERSION >= 1208) /* convert sjis to utf-8 */
+#if defined(MACOSX) && (SDL_COMPILEDVERSION >= 1208) && !SDL_VERSION_ATLEAST(2, 0, 0) /* convert sjis to utf-8 */
     DirectReader::convertFromSJISToUTF8(buf2, buf);
-#elif defined(LINUX) || (defined(WIN32) && defined(UTF8_CAPTION))
+#elif defined(LINUX) || (defined(WIN32) && defined(UTF8_CAPTION)) || (defined(MACOSX) && SDL_VERSION_ATLEAST(2, 0, 0))
 #if defined(UTF8_CAPTION)
     if (script_h.enc.getEncoding() == Encoding::CODE_UTF8)
         strcpy(buf2, buf);
@@ -3489,7 +3521,11 @@ int ONScripter::captionCommand()
     setStr( &wm_icon_string,  buf2 );
     delete[] buf2;
     
+#if defined(USE_SDL_RENDERER)
+    SDL_SetWindowTitle( window, wm_title_string );
+#elif !SDL_VERSION_ATLEAST(2, 0, 0)
     SDL_WM_SetCaption( wm_title_string, wm_icon_string );
+#endif
 
     return RET_CONTINUE;
 }
@@ -3708,7 +3744,11 @@ int ONScripter::btndefCommand()
             parseTaggedString( &btndef_info );
             btndef_info.trans_mode = AnimationInfo::TRANS_COPY;
             setupAnimationInfo( &btndef_info );
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+            SDL_SetSurfaceAlphaMod( btndef_info.image_surface, SDL_ALPHA_OPAQUE );
+#else
             SDL_SetAlpha( btndef_info.image_surface, DEFAULT_BLIT_FLAG, SDL_ALPHA_OPAQUE );
+#endif
         }
     }
     
@@ -3833,7 +3873,11 @@ int ONScripter::bltCommand()
         SDL_DestroyTexture(texture);
 #else
         SDL_BlitSurface( btndef_info.image_surface, &src_rect, screen_surface, &dst_rect );
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+        SDL_UpdateWindowSurfaceRects( window, &dst_rect, 1 );
+#else
         SDL_UpdateRect( screen_surface, dst_rect.x, dst_rect.y, dst_rect.w, dst_rect.h );
+#endif
 #endif
         dirty_rect.clear();
     }
