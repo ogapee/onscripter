@@ -1,0 +1,9 @@
+nsaconv
+nsadec
+onscripter
+sarconv
+sardec
+nscriptdecode
+*.o
+*.exe
+*.obj
